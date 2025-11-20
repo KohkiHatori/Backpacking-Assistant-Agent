@@ -1,101 +1,104 @@
-import Image, { type ImageProps } from "next/image";
-import { Button } from "@repo/ui/button";
 import styles from "./page.module.css";
 
-type Props = Omit<ImageProps, "src"> & {
-  srcLight: string;
-  srcDark: string;
-};
-
-const ThemeImage = (props: Props) => {
-  const { srcLight, srcDark, ...rest } = props;
-
-  return (
-    <>
-      <Image {...rest} src={srcLight} className="imgLight" />
-      <Image {...rest} src={srcDark} className="imgDark" />
-    </>
-  );
-};
-
 export default function Home() {
+  const year = new Date().getFullYear();
+
   return (
     <div className={styles.page}>
-      <main className={styles.main}>
-        <ThemeImage
-          className={styles.logo}
-          srcLight="turborepo-dark.svg"
-          srcDark="turborepo-light.svg"
-          alt="Turborepo logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>apps/web/app/page.tsx</code>
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new/clone?demo-description=Learn+to+implement+a+monorepo+with+a+two+Next.js+sites+that+has+installed+three+local+packages.&demo-image=%2F%2Fimages.ctfassets.net%2Fe5382hct74si%2F4K8ZISWAzJ8X1504ca0zmC%2F0b21a1c6246add355e55816278ef54bc%2FBasic.png&demo-title=Monorepo+with+Turborepo&demo-url=https%3A%2F%2Fexamples-basic-web.vercel.sh%2F&from=templates&project-name=Monorepo+with+Turborepo&repository-name=monorepo-turborepo&repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fturborepo%2Ftree%2Fmain%2Fexamples%2Fbasic&root-directory=apps%2Fdocs&skippable-integrations=1&teamSlug=vercel&utm_source=create-turbo"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://turborepo.com/docs?utm_source"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-        <Button appName="web" className={styles.secondary}>
-          Open alert
-        </Button>
+      <main className={styles.surface}>
+        <section className={styles.hero}>
+          <span className={styles.tag}>Backpacking Assistant</span>
+          <h1 className={styles.heroTitle}>Plan lighter. Move faster.</h1>
+          <p className={styles.heroBody}>
+            A minimal hub for teams who obsess over beta, weight, and weather.
+            The Backpacking Assistant distills your prep into calm, actionable
+            cards so you can spend more time outside—not inside another app.
+          </p>
+          <ul className={styles.highlights}>
+            <li>
+              <span aria-hidden="true" />
+              Snapshot itineraries you can share in one link
+            </li>
+            <li>
+              <span aria-hidden="true" />
+              Gear presets tuned to alpine, desert, and jungle climates
+            </li>
+            <li>
+              <span aria-hidden="true" />
+              Focus cues that surface only the next critical task
+            </li>
+          </ul>
+          <div className={styles.heroBadge}>
+            <span className={styles.heroBadgePulse} aria-hidden="true" />
+            Field-tested on 40+ unsupported expeditions
+          </div>
+        </section>
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <p className={styles.overline}>Trail operations</p>
+            <h2>Keep every trek brief and breathable</h2>
+            <p className={styles.helper}>
+              Assemble routes, dial in packs, and sync crew context without
+              juggling five tools or forcing a login before you&rsquo;re ready.
+            </p>
+          </div>
+          <div className={styles.statGrid}>
+            <div className={styles.statBlock}>
+              <span className={styles.statLabel}>Routes templated</span>
+              <span className={styles.statValue}>340+</span>
+            </div>
+            <div className={styles.statBlock}>
+              <span className={styles.statLabel}>Gear profiles</span>
+              <span className={styles.statValue}>58</span>
+            </div>
+            <div className={styles.statBlock}>
+              <span className={styles.statLabel}>Offline playbooks</span>
+              <span className={styles.statValue}>12</span>
+            </div>
+          </div>
+          <ul className={styles.cardList}>
+            <li>Drag-and-drop checklist blocks tuned to mileage and elevation.</li>
+            <li>Drop zone heatmaps so crews know exactly where the risk lives.</li>
+            <li>One push export to PDF, GPX, and laminated field cards.</li>
+          </ul>
+          <div className={styles.cardCtas}>
+            <a
+              className={styles.primaryAction}
+              href="https://github.com/kohkihatori/Backpacking-Assistant-Agent"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Browse the playbook
+              <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <path
+                  d="M3 8h10m-4-4 4 4-4 4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </a>
+            <a
+              className={styles.secondaryAction}
+              href="mailto:support@backpackingassistant.app?subject=Trail%20ops%20inquiry"
+            >
+              Talk to our team
+            </a>
+          </div>
+          <p className={styles.meta}>
+            No accounts required to explore. We&rsquo;ll invite you to a shared
+            workspace when you&rsquo;re trail-ready.
+          </p>
+        </section>
       </main>
       <footer className={styles.footer}>
-        <a
-          href="https://vercel.com/templates?search=turborepo&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://turborepo.com?utm_source=create-turbo"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to turborepo.com →
-        </a>
+        <span>© {year} Backpacking Assistant</span>
+        <div className={styles.footerLinks}>
+          <a href="mailto:privacy@backpackingassistant.app">Privacy</a>
+          <a href="mailto:legal@backpackingassistant.app">Terms</a>
+        </div>
       </footer>
     </div>
   );
