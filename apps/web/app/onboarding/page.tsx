@@ -4,6 +4,7 @@ import { authOptions } from "../../lib/auth";
 import styles from "../page.module.css";
 import { submitOnboarding } from "./actions";
 import CitizenshipSelect from "./citizenship-select";
+import CurrencySelect from "./currency-select";
 
 export default async function OnboardingPage() {
   const session = await getServerSession(authOptions);
@@ -42,17 +43,7 @@ export default async function OnboardingPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
               <label className={styles.statLabel} htmlFor="currency">Preferred Currency</label>
-              <select
-                name="currency"
-                className={styles.secondaryAction}
-                style={{ textAlign: 'left', paddingLeft: 20 }}
-                defaultValue="USD"
-              >
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-                <option value="JPY">JPY (¥)</option>
-              </select>
+              <CurrencySelect defaultValue="USD" />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
