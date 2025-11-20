@@ -1,10 +1,19 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "../../lib/auth";
-import styles from "../page.module.css";
 import { submitOnboarding } from "./actions";
-import CitizenshipSelect from "./citizenship-select";
-import CurrencySelect from "./currency-select";
+import CitizenshipSelect from "../../components/citizenship-select";
+import CurrencySelect from "../../components/currency-select";
+import {
+  Box,
+  Container,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Button,
+  Stack
+} from "@mui/material";
 
 export default async function OnboardingPage() {
   const session = await getServerSession(authOptions);
@@ -14,54 +23,54 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <main className={styles.surface}>
-        <section className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2>Welcome! Let's get you set up.</h2>
-            <p className={styles.helper}>
-              Tell us a bit about your preferences to help us plan your trips.
-            </p>
-          </div>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', py: { xs: 4, md: 12 } }}>
+      <Container maxWidth="sm">
+        <Card>
+          <CardContent sx={{ p: { xs: 3, md: 5 } }}>
+            <Box sx={{ mb: 4, textAlign: 'center' }}>
+              <Typography variant="h4" component="h1" gutterBottom>
+                Welcome! Let's get you set up.
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Tell us a bit about your preferences to help us plan your trips.
+              </Typography>
+            </Box>
 
-          <form action={submitOnboarding} className={styles.cardCtas} style={{ flexDirection: 'column' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-              <label className={styles.statLabel} htmlFor="name">Name</label>
-              <input
-                name="name"
-                defaultValue={session.user?.name ?? ""}
-                className={styles.secondaryAction}
-                style={{ textAlign: 'left', paddingLeft: 20 }}
-                required
-              />
-            </div>
+            <form action={submitOnboarding}>
+              <Stack spacing={3}>
+                <TextField
+                  label="Name"
+                  name="name"
+                  defaultValue={session.user?.name ?? ""}
+                  required
+                  fullWidth
+                />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-              <label className={styles.statLabel} htmlFor="citizenship">Citizenship</label>
-              <CitizenshipSelect defaultValue="" />
-            </div>
+                <CitizenshipSelect defaultValue="" />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-              <label className={styles.statLabel} htmlFor="currency">Preferred Currency</label>
-              <CurrencySelect defaultValue="USD" />
-            </div>
+                <CurrencySelect defaultValue="USD" />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-              <label className={styles.statLabel} htmlFor="food_dietary">Dietary Restrictions</label>
-              <input
-                name="food_dietary"
-                placeholder="e.g. Vegan, None"
-                className={styles.secondaryAction}
-                style={{ textAlign: 'left', paddingLeft: 20 }}
-              />
-            </div>
+                <TextField
+                  label="Dietary Restrictions"
+                  name="food_dietary"
+                  placeholder="e.g. Vegan, None"
+                  fullWidth
+                />
 
-            <button type="submit" className={styles.primaryAction}>
-              <span>Complete Setup</span>
-            </button>
-          </form>
-        </section>
-      </main>
-    </div>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  fullWidth
+                  sx={{ mt: 2 }}
+                >
+                  Complete Setup
+                </Button>
+              </Stack>
+            </form>
+          </CardContent>
+        </Card>
+      </Container>
+    </Box>
   );
 }

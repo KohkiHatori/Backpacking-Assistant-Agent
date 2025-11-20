@@ -1,30 +1,14 @@
 import { getServerSession } from "next-auth";
-
 import { authOptions } from "../../lib/auth";
-import styles from "../page.module.css";
-import { GoogleSignInButton, SignOutButton } from "./auth-buttons";
-
-const containerStyle = {
-  maxWidth: 420,
-  margin: "0 auto",
-  minHeight: "60vh",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 24,
-  padding: 24,
-  textAlign: "center",
-} as const;
-
-const buttonStyle = {
-  borderRadius: 6,
-  padding: "10px 18px",
-  border: "none",
-  backgroundColor: "#111827",
-  color: "#fff",
-  cursor: "pointer",
-} as const;
+import { GoogleSignInButton, SignOutButton } from "../../components/auth-buttons";
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Container,
+  Link
+} from "@mui/material";
 
 interface AuthPageProps {
   searchParams?: {
@@ -39,55 +23,60 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
   const year = new Date().getFullYear();
 
   return (
-    <div className={styles.page}>
-      <main className={styles.surface}>
-        <section className={styles.hero}>
-          <span className={styles.tag}>Backpacking Assistant</span>
-          <h1 className={styles.heroTitle}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', p: { xs: 3, md: 12 }, gap: 8 }}>
+      <Container component="main" maxWidth="lg" sx={{ display: 'grid', gridTemplateColumns: { md: '1fr 1fr' }, gap: 8, alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Typography variant="overline" sx={{ letterSpacing: '0.18em', fontWeight: 600, bgcolor: 'rgba(11, 16, 32, 0.05)', px: 2, py: 1, borderRadius: 99, alignSelf: 'flex-start', border: '1px solid rgba(11, 16, 32, 0.1)' }}>
+            Backpacking Assistant
+          </Typography>
+          <Typography variant="h1" sx={{ fontSize: { xs: '2.4rem', md: '3.8rem' }, lineHeight: 1.05 }}>
             Secure your gear and get back to the trail
-          </h1>
-          <p className={styles.heroBody}>
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.05rem', lineHeight: 1.7, maxWidth: '48ch' }}>
             {session
               ? "You're signed in. Manage your account or sign out here."
               : "Sign in to sync your checklists, permits, and packing iterations across devices."}
-          </p>
-        </section>
-        <section className={styles.card}>
-          <div className={styles.cardHeader}>
-            <p className={styles.overline}>
-              {session ? "Account" : "Welcome back"}
-            </p>
-            <h2>
-              {session
-                ? `Signed in as ${session.user?.name ?? session.user?.email ?? "Unknown user"
-                }`
-                : "Access your pack in seconds"}
-            </h2>
-            <p className={styles.helper}>
-              {session
-                ? "You can now access all your synchronized trip data."
-                : "Use your Google account to keep every route, checklist, and insight safely in one place."}
-            </p>
-          </div>
+          </Typography>
+        </Box>
 
-          {session ? (
-            <div className={styles.cardCtas}>
-              <SignOutButton />
-            </div>
-          ) : (
-            <div className={styles.cardCtas}>
-              <GoogleSignInButton callbackUrl={callbackUrl} />
-            </div>
-          )}
-        </section>
-      </main>
-      <footer className={styles.footer}>
-        <span>© {year} Backpacking Assistant</span>
-        <div className={styles.footerLinks}>
-          <a href="mailto:privacy@backpackingassistant.app">Privacy</a>
-          <a href="mailto:legal@backpackingassistant.app">Terms</a>
-        </div>
-      </footer>
-    </div>
+        <Card>
+          <CardContent sx={{ p: { xs: 3, md: 5 }, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box>
+              <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.2em' }}>
+                {session ? "Account" : "Welcome back"}
+              </Typography>
+              <Typography variant="h4" component="h2" gutterBottom>
+                {session
+                  ? `Signed in as ${session.user?.name ?? session.user?.email ?? "Unknown user"}`
+                  : "Access your pack in seconds"}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+                {session
+                  ? "You can now access all your synchronized trip data."
+                  : "Use your Google account to keep every route, checklist, and insight safely in one place."}
+              </Typography>
+            </Box>
+
+            <Box>
+              {session ? (
+                <SignOutButton />
+              ) : (
+                <GoogleSignInButton callbackUrl={callbackUrl} />
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+      </Container>
+
+      <Box component="footer" sx={{ mt: 'auto', display: 'flex', justifyContent: 'space-between', color: 'text.secondary', fontSize: '0.85rem', px: 2 }}>
+        <Typography variant="body2" color="inherit">
+          © {year} Backpacking Assistant
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Link href="mailto:privacy@backpackingassistant.app" color="inherit" underline="hover">Privacy</Link>
+          <Link href="mailto:legal@backpackingassistant.app" color="inherit" underline="hover">Terms</Link>
+        </Box>
+      </Box>
+    </Box>
   );
 }

@@ -4,6 +4,7 @@ import "./globals.css";
 
 import AuthProvider from "./auth-provider";
 import TRPCProvider from "./trpc-provider";
+import { MUIProvider } from "../components/mui-provider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -28,7 +29,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
-          <TRPCProvider>{children}</TRPCProvider>
+          <TRPCProvider>
+            <MUIProvider>{children}</MUIProvider>
+          </TRPCProvider>
         </AuthProvider>
       </body>
     </html>
