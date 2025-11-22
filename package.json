@@ -18,8 +18,12 @@
   },
   "packageManager": "npm@10.8.2",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@mui/x-date-pickers": "^8.19.0",
+    "date-fns": "^4.1.0",
     "react": "19.0.0-rc-f994737d14-20240522",
-    "react-dom": "19.0.0-rc-f994737d14-20240522"
+    "react-dom": "19.0.0-rc-f994737d14-20240522",
+    "react-google-places-autocomplete": "^4.1.0"
   },
   "overrides": {
     "react": "19.0.0-rc-f994737d14-20240522",
