@@ -8,8 +8,17 @@ import {
   Avatar,
   Box,
   Container,
-  Grid
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
+  Divider
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
+import { Settings, Logout } from "@mui/icons-material";
+import { signOut } from "next-auth/react";
+import { useState } from "react";
 
 interface DashboardProps {
   trips: any[];
@@ -21,6 +30,27 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ trips, user }: DashboardProps) {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    handleClose();
+    await signOut({ callbackUrl: '/auth' });
+  };
+
+  const handleSettings = () => {
+    handleClose();
+    // Settings functionality to be implemented
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <AppBar
@@ -40,19 +70,72 @@ export default function Dashboard({ trips, user }: DashboardProps) {
           </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar
-              src={user.image || undefined}
-              alt={user.name || "User"}
-              imgProps={{ referrerPolicy: "no-referrer" }}
-              sx={{
-                bgcolor: 'rgba(11, 16, 32, 0.05)',
-                color: 'text.secondary',
-                border: '1px solid',
-                borderColor: 'rgba(11, 16, 32, 0.1)'
+            <IconButton
+              onClick={handleClick}
+              aria-controls={open ? 'user-menu' : undefined}
+              aria-haspopup="true"
+              aria-expanded={open ? 'true' : undefined}
+            >
+              <Avatar
+                src={user.image || undefined}
+                alt={user.name || "User"}
+                imgProps={{ referrerPolicy: "no-referrer" }}
+                sx={{
+                  bgcolor: 'rgba(11, 16, 32, 0.05)',
+                  color: 'text.secondary',
+                  border: '1px solid',
+                  borderColor: 'rgba(11, 16, 32, 0.1)'
+                }}
+              >
+                {(!user.image && (user.name?.[0] || user.email?.[0] || "U"))}
+              </Avatar>
+            </IconButton>
+            <Menu
+              id="user-menu"
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleClose}
+              onClick={handleClose}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+              slotProps={{
+                paper: {
+                  elevation: 0,
+                  sx: {
+                    overflow: 'visible',
+                    filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.12))',
+                    mt: 1.5,
+                    minWidth: 180,
+                    '&::before': {
+                      content: '""',
+                      display: 'block',
+                      position: 'absolute',
+                      top: 0,
+                      right: 14,
+                      width: 10,
+                      height: 10,
+                      bgcolor: 'background.paper',
+                      transform: 'translateY(-50%) rotate(45deg)',
+                      zIndex: 0,
+                    },
+                  },
+                },
               }}
             >
-              {(!user.image && (user.name?.[0] || user.email?.[0] || "U"))}
-            </Avatar>
+              <MenuItem onClick={handleSettings}>
+                <ListItemIcon>
+                  <Settings fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Settings</ListItemText>
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <ListItemIcon>
+                  <Logout fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Logout</ListItemText>
+              </MenuItem>
+            </Menu>
           </Box>
         </Toolbar>
       </AppBar>

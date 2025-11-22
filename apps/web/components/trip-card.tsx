@@ -38,13 +38,13 @@ export default function TripCard({ trip }: TripCardProps) {
   };
 
   return (
-    <Card sx={{ borderRadius: "24px", height: "100%", minHeight: "300px" }}>
+    <Card sx={{ borderRadius: "24px", height: "100%", display: 'flex', flexDirection: 'column' }}>
       <CardActionArea
         LinkComponent={Link}
         href={`/trips/${trip.id}`}
-        sx={{ height: "100%", p: 3, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'space-between' }}
+        sx={{ height: "100%", p: 3, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }}
       >
-        <CardContent sx={{ p: 0, width: '100%' }}>
+        <CardContent sx={{ p: 0, width: '100%', flex: 1 }}>
           <Typography variant="h4" component="h3" gutterBottom sx={{ fontWeight: 700, fontSize: "1.6rem" }}>
             {trip.name}
           </Typography>
@@ -73,7 +73,8 @@ export function CreateTripCard() {
       sx={{
         borderRadius: "24px",
         height: "100%",
-        minHeight: "300px",
+        display: 'flex',
+        flexDirection: 'column',
         backgroundColor: "transparent",
         border: "2px dashed rgba(11, 16, 32, 0.12)",
         boxShadow: "none",
@@ -87,7 +88,7 @@ export function CreateTripCard() {
       <CardActionArea
         LinkComponent={Link}
         href="/trip/create"
-        sx={{ height: "100%", p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}
+        sx={{ height: "100%", p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, flex: 1 }}
       >
         <Box
           sx={{

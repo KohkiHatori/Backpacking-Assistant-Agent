@@ -10,20 +10,42 @@ import GooglePlacesAutocomplete from "react-google-places-autocomplete";
 export function DestinationsStep() {
   const { destinations, startPoint, endPoint, setField } = useStore();
   const [differentEndPoint, setDifferentEndPoint] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
-  // Initialize checkbox state based on whether endPoint is different from startPoint
+  // Initialize on mount
   useEffect(() => {
-    if (endPoint && startPoint && endPoint !== startPoint) {
-      setDifferentEndPoint(true);
+    if (!initialized) {
+      // Check if endPoint is different from startPoint
+      if (endPoint && startPoint && endPoint !== startPoint) {
+        setDifferentEndPoint(true);
+      }
+
+      // Ensure there's at least one destination when start and end are the same
+      if (!differentEndPoint && destinations.length === 0) {
+        setField("destinations", [""]);
+      }
+
+      setInitialized(true);
     }
   }, []);
 
-  // When checkbox changes, update endPoint accordingly
+  // Ensure there's at least one destination when start and end are the same (after initialization)
+  useEffect(() => {
+    if (initialized && !differentEndPoint && destinations.length === 0) {
+      setField("destinations", [""]);
+    }
+  }, [initialized, differentEndPoint, destinations.length, setField]);
+
+  // When checkbox changes, update endPoint and destinations accordingly
   const handleCheckboxChange = (checked: boolean) => {
     setDifferentEndPoint(checked);
     if (!checked) {
       // If unchecked, set endPoint same as startPoint
       setField("endPoint", startPoint);
+      // Ensure at least one destination exists
+      if (destinations.length === 0) {
+        setField("destinations", [""]);
+      }
     } else {
       // If checked, clear endPoint so user can enter a different one
       setField("endPoint", "");
@@ -42,6 +64,10 @@ export function DestinationsStep() {
   };
 
   const removeDestination = (index: number) => {
+    // Don't allow removing the first destination if start and end are the same
+    if (!differentEndPoint && index === 0 && destinations.length === 1) {
+      return;
+    }
     const newDestinations = destinations.filter((_, i) => i !== index);
     setField("destinations", newDestinations);
   };
@@ -77,32 +103,40 @@ export function DestinationsStep() {
 
       <Box sx={{ mb: 3 }}>
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-          Destinations (Optional)
+          Destinations {!differentEndPoint ? "*" : "(Optional)"}
         </Typography>
-        {destinations.map((destination, index) => (
-          <Box key={index} sx={{ display: "flex", gap: 1, mb: 2, alignItems: "center" }}>
-            <Box sx={{ flex: 1 }}>
-              <GooglePlacesAutocomplete
-                apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
-                selectProps={{
-                  value: destination ? { label: destination, value: destination } : null,
-                  onChange: (newValue) => {
-                    updateDestination(index, newValue?.label || "");
-                  },
-                  placeholder: `Destination ${index + 1}`,
-                  isClearable: true,
+        {destinations.map((destination, index) => {
+          const isFirstAndRequired = !differentEndPoint && index === 0;
+          return (
+            <Box key={index} sx={{ display: "flex", gap: 1, mb: 2, alignItems: "center" }}>
+              <Box sx={{ flex: 1 }}>
+                <GooglePlacesAutocomplete
+                  apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+                  selectProps={{
+                    value: destination ? { label: destination, value: destination } : null,
+                    onChange: (newValue) => {
+                      updateDestination(index, newValue?.label || "");
+                    },
+                    placeholder: `Destination ${index + 1}`,
+                    isClearable: true,
+                  }}
+                />
+              </Box>
+              <IconButton
+                onClick={() => removeDestination(index)}
+                color="error"
+                size="small"
+                disabled={isFirstAndRequired && destinations.length === 1}
+                sx={{
+                  opacity: isFirstAndRequired && destinations.length === 1 ? 0.3 : 1,
+                  cursor: isFirstAndRequired && destinations.length === 1 ? "not-allowed" : "pointer",
                 }}
-              />
+              >
+                <DeleteIcon />
+              </IconButton>
             </Box>
-            <IconButton
-              onClick={() => removeDestination(index)}
-              color="error"
-              size="small"
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Box>
-        ))}
+          );
+        })}
         <IconButton
           onClick={addDestination}
           color="primary"
@@ -162,10 +196,19 @@ export function isDestinationsStepValid(
   endPoint: string
 ): boolean {
   // Starting point and ending point are required
-  // Destinations are optional, but if any exist, they must all be filled
-  return (
-    startPoint.trim() !== "" &&
-    endPoint.trim() !== "" &&
-    destinations.every((d) => d.trim() !== "")
-  );
+  if (startPoint.trim() === "" || endPoint.trim() === "") {
+    return false;
+  }
+
+  // All destinations must be filled (no empty strings)
+  if (!destinations.every((d) => d.trim() !== "")) {
+    return false;
+  }
+
+  // If start and end locations are the same, at least one destination is required
+  if (startPoint.trim() === endPoint.trim()) {
+    return destinations.length > 0 && destinations.every((d) => d.trim() !== "");
+  }
+
+  return true;
 }
