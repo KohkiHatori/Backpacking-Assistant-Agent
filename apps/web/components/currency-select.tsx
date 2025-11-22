@@ -8,13 +8,26 @@ interface Currency {
   value: string;
 }
 
-export default function CurrencySelect({ defaultValue }: { defaultValue?: string }) {
+interface CurrencySelectProps {
+  defaultValue?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+}
+
+export default function CurrencySelect({ defaultValue, value: controlledValue, onChange }: CurrencySelectProps) {
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState<Currency[]>([]);
   const [loading, setLoading] = useState(false);
   const [value, setValue] = useState<Currency | null>(
     defaultValue ? { label: defaultValue, value: defaultValue } : null
   );
+
+  // Sync internal value with controlled value if provided
+  useEffect(() => {
+    if (controlledValue) {
+      setValue({ label: controlledValue, value: controlledValue });
+    }
+  }, [controlledValue]);
 
   useEffect(() => {
     if (!open || options.length > 0) {
@@ -64,6 +77,9 @@ export default function CurrencySelect({ defaultValue }: { defaultValue?: string
         value={value}
         onChange={(event, newValue) => {
           setValue(newValue);
+          if (onChange && newValue) {
+            onChange(newValue.value);
+          }
         }}
         renderInput={(params) => (
           <TextField

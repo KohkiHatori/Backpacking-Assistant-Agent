@@ -66,7 +66,7 @@ export function CreateTripCard() {
     >
       <CardActionArea
         LinkComponent={Link}
-        href="/trips/new"
+        href="/trip/create"
         sx={{ height: "100%", p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}
       >
         <Box
