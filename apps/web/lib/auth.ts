@@ -27,7 +27,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user && token.sub) {
         // Pass the user ID to the session so we can use it in queries
-        // @ts-expect-error - extending default session type
+        // @ts-ignore - extending default session type
         session.user.id = token.sub;
       }
       return session;

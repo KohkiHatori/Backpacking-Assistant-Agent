@@ -92,7 +92,7 @@ export function DestinationsStep() {
           apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
           selectProps={{
             value: startPoint ? { label: startPoint, value: startPoint } : null,
-            onChange: (newValue) => {
+            onChange: (newValue: any) => {
               setField("startPoint", newValue?.label || "");
             },
             placeholder: differentEndPoint ? "Where does your trip start?" : "Where does your trip start and end?",
@@ -114,7 +114,7 @@ export function DestinationsStep() {
                   apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
                   selectProps={{
                     value: destination ? { label: destination, value: destination } : null,
-                    onChange: (newValue) => {
+                    onChange: (newValue: any) => {
                       updateDestination(index, newValue?.label || "");
                     },
                     placeholder: `Destination ${index + 1}`,
@@ -176,7 +176,7 @@ export function DestinationsStep() {
               apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
               selectProps={{
                 value: endPoint ? { label: endPoint, value: endPoint } : null,
-                onChange: (newValue) => {
+                onChange: (newValue: any) => {
                   setField("endPoint", newValue?.label || "");
                 },
                 placeholder: "Where does your trip end?",

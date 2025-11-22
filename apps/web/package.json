@@ -30,7 +30,7 @@
     "@mui/material": "^6.5.0",
     "@mui/material-nextjs": "^6.5.0",
     "@mui/system": "^6.5.0",
-    "@mui/x-date-pickers-pro": "^8.19.0",
+    "@mui/x-date-pickers-pro": "^7.29.4",
     "@next-auth/supabase-adapter": "^0.2.1",
     "@react-aria/focus": "^3.21.2",
     "@react-aria/interactions": "^3.25.6",
