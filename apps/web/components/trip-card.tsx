@@ -10,7 +10,32 @@ interface TripCardProps {
 }
 
 export default function TripCard({ trip }: TripCardProps) {
-  const startDate = trip.start_date ? new Date(trip.start_date).toLocaleDateString() : "TBD";
+  const formatDateRange = () => {
+    if (!trip.start_date && !trip.end_date) {
+      return "Dates TBD";
+    }
+
+    // Parse dates as local dates to avoid timezone issues
+    const parseLocalDate = (dateString: string) => {
+      const parts = dateString.split('-').map(Number);
+      if (parts.length === 3 && parts.every(p => !isNaN(p))) {
+        const year = parts[0]!;
+        const month = parts[1]!;
+        const day = parts[2]!;
+        return new Date(year, month - 1, day).toLocaleDateString();
+      }
+      return "Invalid Date";
+    };
+
+    const startDate = trip.start_date ? parseLocalDate(trip.start_date) : "TBD";
+    const endDate = trip.end_date ? parseLocalDate(trip.end_date) : "TBD";
+
+    if (trip.start_date && trip.end_date) {
+      return `${startDate} - ${endDate}`;
+    }
+
+    return startDate;
+  };
 
   return (
     <Card sx={{ borderRadius: "24px", height: "100%", minHeight: "300px" }}>
@@ -23,13 +48,18 @@ export default function TripCard({ trip }: TripCardProps) {
           <Typography variant="h4" component="h3" gutterBottom sx={{ fontWeight: 700, fontSize: "1.6rem" }}>
             {trip.name}
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
-            {startDate}
+          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mb: 1 }}>
+            {formatDateRange()}
           </Typography>
+          {trip.description && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2, lineHeight: 1.6 }}>
+              {trip.description}
+            </Typography>
+          )}
         </CardContent>
 
-        <Box sx={{ mt: 3, width: '100%' }}>
-          {trip.destinations && trip.destinations.length > 0 ? (
+        {trip.destinations && trip.destinations.length > 0 && (
+          <Box sx={{ mt: 3, width: '100%' }}>
             <Chip
               label={
                 trip.destinations.length > 2
@@ -38,10 +68,8 @@ export default function TripCard({ trip }: TripCardProps) {
               }
               sx={{ backgroundColor: "rgba(11, 16, 32, 0.05)", fontWeight: 600, fontSize: "0.95rem", py: 0.5 }}
             />
-          ) : (
-            <Typography variant="caption" color="text.disabled">No destinations</Typography>
-          )}
-        </Box>
+          </Box>
+        )}
       </CardActionArea>
     </Card>
   );

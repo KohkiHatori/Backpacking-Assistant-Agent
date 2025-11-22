@@ -34,6 +34,7 @@ export default function CreateTripPage() {
   const { step, nextStep, prevStep, setStep } = store;
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
   const handleFinish = async () => {
     setLoading(true);
@@ -61,16 +62,55 @@ export default function CreateTripPage() {
     }
   };
 
-  const isCurrentStepValid = (): boolean => {
-    switch (step) {
+  const isStepValid = (stepIndex: number): boolean => {
+    switch (stepIndex) {
       case 0:
         return isDestinationsStepValid(
           store.startPoint,
           store.destinations,
           store.endPoint
         );
+      case 1:
+        return store.startDate !== null && store.endDate !== null;
+      case 2:
+        return true; // Preferences are optional
+      case 3:
+        return true; // Transportation is optional
+      case 4:
+        return store.budget > 0;
       default:
         return true;
+    }
+  };
+
+  const isCurrentStepValid = (): boolean => {
+    return isStepValid(step);
+  };
+
+  const canNavigateToStep = (targetStep: number): boolean => {
+    if (targetStep <= step) {
+      // Can always go back to previous steps
+      return true;
+    }
+    // Can only go forward if all previous steps are completed
+    for (let i = 0; i < targetStep; i++) {
+      if (!isStepValid(i)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleStepClick = (targetStep: number) => {
+    if (canNavigateToStep(targetStep)) {
+      setStep(targetStep);
+    }
+  };
+
+  const handleNext = () => {
+    if (isCurrentStepValid()) {
+      setCompletedSteps(new Set(completedSteps).add(step));
+      nextStep();
     }
   };
 
@@ -105,28 +145,38 @@ export default function CreateTripPage() {
           <Stepper activeStep={step} alternativeLabel sx={{ mb: 4 }}>
             {steps.map((label, index) => (
               <Step key={label}>
-                <StepLabel onClick={() => setStep(index)}>{label}</StepLabel>
+                <StepLabel
+                  onClick={() => handleStepClick(index)}
+                  sx={{
+                    cursor: canNavigateToStep(index) ? "pointer" : "not-allowed",
+                    opacity: canNavigateToStep(index) ? 1 : 0.5,
+                  }}
+                >
+                  {label}
+                </StepLabel>
               </Step>
             ))}
           </Stepper>
-          <Box>{renderStep()}</Box>
-          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}>
-            <Button disabled={step === 0} onClick={prevStep}>
-              Back
-            </Button>
-            <Button
-              variant="contained"
-              onClick={step < steps.length - 1 ? nextStep : handleFinish}
-              disabled={loading || !isCurrentStepValid()}
-            >
-              {step < steps.length - 1 ? (
-                "Next"
-              ) : loading ? (
-                <CircularProgress size={24} />
-              ) : (
-                "Finish"
-              )}
-            </Button>
+          <Box sx={{ minHeight: "400px", display: "flex", flexDirection: "column" }}>
+            <Box sx={{ flex: 1 }}>{renderStep()}</Box>
+            <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}>
+              <Button disabled={step === 0} onClick={prevStep}>
+                Back
+              </Button>
+              <Button
+                variant="contained"
+                onClick={step < steps.length - 1 ? handleNext : handleFinish}
+                disabled={loading || !isCurrentStepValid()}
+              >
+                {step < steps.length - 1 ? (
+                  "Next"
+                ) : loading ? (
+                  <CircularProgress size={24} />
+                ) : (
+                  "Finish"
+                )}
+              </Button>
+            </Box>
           </Box>
         </Box>
       </Container>
