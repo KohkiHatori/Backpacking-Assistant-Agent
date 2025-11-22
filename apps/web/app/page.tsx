@@ -11,7 +11,6 @@ export default async function Home() {
     redirect("/auth");
   }
 
-  // @ts-expect-error - extending default session type
   const trips = await getUserTrips(session.user.id);
 
   return <Dashboard trips={trips} user={session.user} />;
