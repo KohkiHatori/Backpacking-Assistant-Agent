@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
 import Script from "next/script";
 import {
@@ -12,9 +12,13 @@ import {
   Step,
   StepLabel,
   CircularProgress,
+  IconButton,
 } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import Link from "next/link";
 import { DestinationsStep, isDestinationsStepValid } from "@/components/trip-creation/destinations-step";
 import { DatesStep } from "@/components/trip-creation/dates-step";
+import { TravelersStep } from "@/components/trip-creation/travelers-step";
 import { PreferencesStep } from "@/components/trip-creation/preferences-step";
 import { TransportationStep } from "@/components/trip-creation/transportation-step";
 import { BudgetStep } from "@/components/trip-creation/budget-step";
@@ -24,6 +28,7 @@ import { useRouter } from "next/navigation";
 const steps = [
   "Destinations",
   "Dates",
+  "Travelers",
   "Preferences",
   "Transportation",
   "Budget",
@@ -31,10 +36,57 @@ const steps = [
 
 export default function CreateTripPage() {
   const store = useStore();
-  const { step, nextStep, prevStep, setStep } = store;
+  const { step, nextStep, prevStep, setStep, resetForm } = store;
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+
+  // Reset the form when the component mounts
+  useEffect(() => {
+    resetForm();
+  }, [resetForm]);
+
+  // Check if user has entered any data
+  const hasUnsavedData = (): boolean => {
+    return (
+      store.startPoint !== "" ||
+      store.endPoint !== "" ||
+      store.destinations.length > 0 ||
+      store.startDate !== null ||
+      store.endDate !== null ||
+      store.adultsCount !== 1 ||
+      store.childrenCount !== 0 ||
+      store.preferences.length > 0 ||
+      store.transportation.length > 0 ||
+      store.budget !== 1000
+    );
+  };
+
+  // Warn user before leaving page if they have unsaved data
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedData()) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [store]);
+
+  const handleBackClick = (e: React.MouseEvent) => {
+    if (hasUnsavedData()) {
+      const confirmed = window.confirm(
+        "You have unsaved changes. Are you sure you want to leave?"
+      );
+      if (!confirmed) {
+        e.preventDefault();
+      }
+    }
+  };
 
   const handleFinish = async () => {
     setLoading(true);
@@ -47,6 +99,8 @@ export default function CreateTripPage() {
         startDate: store.startDate,
         endDate: store.endDate,
         flexibleDates: store.flexibleDates,
+        adultsCount: store.adultsCount,
+        childrenCount: store.childrenCount,
         preferences: store.preferences,
         transportation: store.transportation,
         budget: store.budget,
@@ -73,10 +127,12 @@ export default function CreateTripPage() {
       case 1:
         return store.startDate !== null && store.endDate !== null;
       case 2:
-        return true; // Preferences are optional
+        return store.adultsCount >= 1; // At least 1 adult required
       case 3:
-        return true; // Transportation is optional
+        return true; // Preferences are optional
       case 4:
+        return true; // Transportation is optional
+      case 5:
         return store.budget > 0;
       default:
         return true;
@@ -121,10 +177,12 @@ export default function CreateTripPage() {
       case 1:
         return <DatesStep />;
       case 2:
-        return <PreferencesStep />;
+        return <TravelersStep />;
       case 3:
-        return <TransportationStep />;
+        return <PreferencesStep />;
       case 4:
+        return <TransportationStep />;
+      case 5:
         return <BudgetStep />;
       default:
         return null;
@@ -137,6 +195,21 @@ export default function CreateTripPage() {
         src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
         strategy="beforeInteractive"
       />
+      <Box sx={{ px: 3, pt: 3 }}>
+        <IconButton
+          component={Link}
+          href="/"
+          onClick={handleBackClick}
+          sx={{
+            bgcolor: "rgba(11, 16, 32, 0.05)",
+            "&:hover": {
+              bgcolor: "rgba(11, 16, 32, 0.1)",
+            },
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+      </Box>
       <Container maxWidth="md">
         <Box sx={{ my: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom>

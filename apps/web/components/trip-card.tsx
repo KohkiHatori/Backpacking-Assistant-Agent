@@ -56,20 +56,12 @@ export default function TripCard({ trip }: TripCardProps) {
               {trip.description}
             </Typography>
           )}
+          {trip.destinations && trip.destinations.length > 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2, lineHeight: 1.6 }}>
+              <strong>Destinations:</strong> {trip.destinations.join(" • ")}
+            </Typography>
+          )}
         </CardContent>
-
-        {trip.destinations && trip.destinations.length > 0 && (
-          <Box sx={{ mt: 3, width: '100%' }}>
-            <Chip
-              label={
-                trip.destinations.length > 2
-                  ? `${trip.destinations.slice(0, 2).join(", ")} +${trip.destinations.length - 2}`
-                  : trip.destinations.join(", ")
-              }
-              sx={{ backgroundColor: "rgba(11, 16, 32, 0.05)", fontWeight: 600, fontSize: "0.95rem", py: 0.5 }}
-            />
-          </Box>
-        )}
       </CardActionArea>
     </Card>
   );

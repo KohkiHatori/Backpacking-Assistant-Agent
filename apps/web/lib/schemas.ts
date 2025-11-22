@@ -31,6 +31,10 @@ export const tripSchema = z.object({
   end_date: z.string().date().nullable().optional(),   // YYYY-MM-DD
   flexible_dates: z.boolean().default(false),
 
+  // Travelers
+  adults_count: z.number().int().positive().default(1),
+  children_count: z.number().int().nonnegative().default(0),
+
   // Arrays/Tags
   destinations: z.array(z.string()).default([]),
   preferences: z.array(z.string()).default([]),

@@ -57,7 +57,7 @@ export default function Dashboard({ trips, user }: DashboardProps) {
         </Toolbar>
       </AppBar>
 
-      <Container component="main" maxWidth="lg" sx={{ py: { xs: 4, md: 8 }, flex: 1 }}>
+      <Container component="main" maxWidth="lg" sx={{ py: { xs: 2, md: 4 }, flex: 1 }}>
         <Box sx={{ mb: 4 }}>
           <Typography variant="h3" component="h1" sx={{ color: 'text.primary' }}>
             Your Trips
@@ -66,11 +66,11 @@ export default function Dashboard({ trips, user }: DashboardProps) {
 
         <Grid container spacing={3}>
           {trips.map((trip) => (
-            <Grid size={{ xs: 12, sm: 6 }} key={trip.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={trip.id}>
               <TripCard trip={trip} />
             </Grid>
           ))}
-          <Grid size={{ xs: 12, sm: 6 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <CreateTripCard />
           </Grid>
         </Grid>

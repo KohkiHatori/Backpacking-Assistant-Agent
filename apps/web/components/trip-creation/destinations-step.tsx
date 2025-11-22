@@ -1,13 +1,41 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useStore } from "@/lib/store";
-import { Box, Typography, IconButton } from "@mui/material";
+import { Box, Typography, IconButton, FormControlLabel, Checkbox } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import GooglePlacesAutocomplete from "react-google-places-autocomplete";
 
 export function DestinationsStep() {
   const { destinations, startPoint, endPoint, setField } = useStore();
+  const [differentEndPoint, setDifferentEndPoint] = useState(false);
+
+  // Initialize checkbox state based on whether endPoint is different from startPoint
+  useEffect(() => {
+    if (endPoint && startPoint && endPoint !== startPoint) {
+      setDifferentEndPoint(true);
+    }
+  }, []);
+
+  // When checkbox changes, update endPoint accordingly
+  const handleCheckboxChange = (checked: boolean) => {
+    setDifferentEndPoint(checked);
+    if (!checked) {
+      // If unchecked, set endPoint same as startPoint
+      setField("endPoint", startPoint);
+    } else {
+      // If checked, clear endPoint so user can enter a different one
+      setField("endPoint", "");
+    }
+  };
+
+  // When startPoint changes and differentEndPoint is false, update endPoint to match
+  useEffect(() => {
+    if (!differentEndPoint && startPoint) {
+      setField("endPoint", startPoint);
+    }
+  }, [startPoint, differentEndPoint, setField]);
 
   const addDestination = () => {
     setField("destinations", [...destinations, ""]);
@@ -32,7 +60,7 @@ export function DestinationsStep() {
 
       <Box sx={{ mb: 3 }}>
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-          Starting Point *
+          Start Location {!differentEndPoint && "& End Location"} *
         </Typography>
         <GooglePlacesAutocomplete
           apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
@@ -41,7 +69,7 @@ export function DestinationsStep() {
             onChange: (newValue) => {
               setField("startPoint", newValue?.label || "");
             },
-            placeholder: "Where are you starting from?",
+            placeholder: differentEndPoint ? "Where does your trip start?" : "Where does your trip start and end?",
             isClearable: true,
           }}
         />
@@ -94,20 +122,35 @@ export function DestinationsStep() {
       </Box>
 
       <Box>
-        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-          Ending Point *
-        </Typography>
-        <GooglePlacesAutocomplete
-          apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
-          selectProps={{
-            value: endPoint ? { label: endPoint, value: endPoint } : null,
-            onChange: (newValue) => {
-              setField("endPoint", newValue?.label || "");
-            },
-            placeholder: "Where will your trip end?",
-            isClearable: true,
-          }}
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={differentEndPoint}
+              onChange={(e) => handleCheckboxChange(e.target.checked)}
+            />
+          }
+          label="My trip ends at a different location"
+          sx={{ mb: 2 }}
         />
+
+        {differentEndPoint && (
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+              End Location *
+            </Typography>
+            <GooglePlacesAutocomplete
+              apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+              selectProps={{
+                value: endPoint ? { label: endPoint, value: endPoint } : null,
+                onChange: (newValue) => {
+                  setField("endPoint", newValue?.label || "");
+                },
+                placeholder: "Where does your trip end?",
+                isClearable: true,
+              }}
+            />
+          </Box>
+        )}
       </Box>
     </Box>
   );

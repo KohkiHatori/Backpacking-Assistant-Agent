@@ -13,18 +13,22 @@ const supabase = createClient(
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 async function generateTripNameAndDescription(tripData: any) {
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-  const prompt = `Based on the following trip details, generate a catchy name and a short, engaging description.
+  const travelersText = tripData.childrenCount > 0
+    ? `${tripData.adultsCount} adult${tripData.adultsCount > 1 ? 's' : ''} and ${tripData.childrenCount} child${tripData.childrenCount > 1 ? 'ren' : ''}`
+    : `${tripData.adultsCount} adult${tripData.adultsCount > 1 ? 's' : ''}`;
+
+  const prompt = `Based on the following trip details, generate a catchy name and a short, engaging one-sentence description.
 
   Destinations: ${tripData.destinations.join(", ") || "Not specified"}
   Start Point: ${tripData.startPoint || "Not specified"}
   End Point: ${tripData.endPoint || "Not specified"}
-  Dates: ${
-    tripData.flexibleDates
+  Dates: ${tripData.flexibleDates
       ? "Flexible"
       : `${tripData.startDate} to ${tripData.endDate}`
-  }
+    }
+  Travelers: ${travelersText}
   Preferences: ${tripData.preferences.join(", ") || "None"}
   Transportation: ${tripData.transportation.join(", ") || "Not specified"}
   Budget: ${tripData.budget} ${tripData.currency}
@@ -54,11 +58,18 @@ export async function createTrip(tripData: any) {
     throw new Error("Unauthorized");
   }
 
+  // @ts-ignore - session.user.id is added in auth callbacks
+  const userId = session.user.id as string;
+
+  if (!userId) {
+    throw new Error("User ID not found in session");
+  }
+
   const { name, description } = await generateTripNameAndDescription(tripData);
 
   const { data, error } = await supabase.from("trips").insert([
     {
-      user_id: session.user.id,
+      user_id: userId,
       name,
       description,
       destinations: tripData.destinations,
@@ -67,6 +78,8 @@ export async function createTrip(tripData: any) {
       start_date: tripData.startDate,
       end_date: tripData.endDate,
       flexible_dates: tripData.flexibleDates,
+      adults_count: tripData.adultsCount,
+      children_count: tripData.childrenCount,
       preferences: tripData.preferences,
       transportation: tripData.transportation,
       budget: tripData.budget,
