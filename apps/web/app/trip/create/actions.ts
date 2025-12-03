@@ -85,7 +85,7 @@ export async function createTrip(tripData: any) {
       budget: tripData.budget,
       currency: tripData.currency,
     },
-  ]);
+  ]).select();
 
   if (error) {
     console.error("Error creating trip:", error);

@@ -203,7 +203,7 @@ class Itinerary(BaseModel):
     start_date: str = Field(description="Trip Start Date in YYYY-MM-DD format")
     end_date: str = Field(description="Trip End Date in YYYY-MM-DD format")
     origin: str = Field(description="Trip Origin, e.g. San Diego")
-    destination: str = (Field(description="Trip Destination, e.g. Seattle"),)
+    destination: str = Field(description="Trip Destination, e.g. Seattle")
     days: list[ItineraryDay] = Field(
         default_factory=list, description="The multi-days itinerary"
     )
@@ -229,3 +229,24 @@ class UserProfile(BaseModel):
 class PackingList(BaseModel):
     """A list of things to pack for the trip."""
     items: list[str]
+
+class Task(BaseModel):
+    """A general task."""
+    title: str = Field(description="Task title")
+    description: str = Field(description="Task details")
+    category: str = Field(description="Category like 'booking', 'packing', 'documents'")
+    priority: str = Field(description="Priority: 'high', 'medium', 'low'")
+    due_date_offset: int = Field(description="Days before trip start date (e.g. 30 means 30 days before, -1 means 1 day after)")
+
+class DestinationTask(BaseModel):
+    """A destination specific task."""
+    destination: str = Field(description="The specific destination this task is for")
+    title: str = Field(description="Task title")
+    description: str = Field(description="Task details")
+    category: str = Field(description="Category like 'booking', 'research'")
+    priority: str = Field(description="Priority: 'high', 'medium', 'low'")
+
+class TripTasks(BaseModel):
+    """Collection of tasks for the trip."""
+    general_tasks: list[Task]
+    destination_tasks: list[DestinationTask]

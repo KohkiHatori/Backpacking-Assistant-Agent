@@ -19,7 +19,10 @@ from google.adk.tools.agent_tool import AgentTool
 from google.genai.types import GenerateContentConfig
 from travel_concierge.shared_libraries import types
 from travel_concierge.sub_agents.planning import prompt
+from travel_concierge.sub_agents.planning import tasks_prompt
+from travel_concierge.sub_agents.planning import tasks_prompt
 from travel_concierge.tools.memory import memorize
+from travel_concierge.tools.database import save_trip_blueprint
 
 
 itinerary_agent = Agent(
@@ -31,6 +34,18 @@ itinerary_agent = Agent(
     disallow_transfer_to_peers=True,
     output_schema=types.Itinerary,
     output_key="itinerary",
+    generate_content_config=types.json_response_config,
+)
+
+tasks_agent = Agent(
+    model="gemini-2.5-flash",
+    name="tasks_agent",
+    description="Generate a list of general and destination-specific tasks for the trip",
+    instruction=tasks_prompt.TASKS_AGENT_INSTR,
+    disallow_transfer_to_parent=True,
+    disallow_transfer_to_peers=True,
+    output_schema=types.TripTasks,
+    output_key="tasks",
     generate_content_config=types.json_response_config,
 )
 
@@ -91,11 +106,13 @@ planning_agent = Agent(
     name="planning_agent",
     instruction=prompt.PLANNING_AGENT_INSTR,
     tools=[
-        AgentTool(agent=flight_search_agent),
-        AgentTool(agent=flight_seat_selection_agent),
-        AgentTool(agent=hotel_search_agent),
-        AgentTool(agent=hotel_room_selection_agent),
+        # AgentTool(agent=flight_search_agent),
+        # AgentTool(agent=flight_seat_selection_agent),
+        # AgentTool(agent=hotel_search_agent),
+        # AgentTool(agent=hotel_room_selection_agent),
         AgentTool(agent=itinerary_agent),
+        AgentTool(agent=tasks_agent),
+        save_trip_blueprint,
         memorize,
     ],
     generate_content_config=GenerateContentConfig(

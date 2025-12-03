@@ -34,12 +34,12 @@ root_agent = Agent(
     description="A Travel Conceirge using the services of multiple sub-agents",
     instruction=prompt.ROOT_AGENT_INSTR,
     sub_agents=[
-        inspiration_agent,
+        # inspiration_agent,
         planning_agent,
-        booking_agent,
-        pre_trip_agent,
-        in_trip_agent,
-        post_trip_agent,
+        # booking_agent,
+        # pre_trip_agent,
+        # in_trip_agent,
+        # post_trip_agent,
     ],
     before_agent_callback=_load_precreated_itinerary,
 )

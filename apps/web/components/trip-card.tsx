@@ -41,7 +41,7 @@ export default function TripCard({ trip }: TripCardProps) {
     <Card sx={{ borderRadius: "24px", height: "100%", display: 'flex', flexDirection: 'column' }}>
       <CardActionArea
         LinkComponent={Link}
-        href={`/trips/${trip.id}`}
+        href={`/trip/${trip.id}`}
         sx={{ height: "100%", p: 3, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }}
       >
         <CardContent sx={{ p: 0, width: '100%', flex: 1 }}>

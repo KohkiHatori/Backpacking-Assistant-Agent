@@ -13,12 +13,15 @@ import {
   ListItemIcon,
   ListItemText,
   IconButton,
-  Divider
+  Divider,
+  CircularProgress
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { Settings, Logout } from "@mui/icons-material";
 import { signOut } from "next-auth/react";
 import { useState } from "react";
+
+import { createTestTrip } from "@/app/debug-actions";
 
 interface DashboardProps {
   trips: any[];
@@ -32,6 +35,7 @@ interface DashboardProps {
 export default function Dashboard({ trips, user }: DashboardProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+  const [isCreatingTest, setIsCreatingTest] = useState(false);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -49,6 +53,12 @@ export default function Dashboard({ trips, user }: DashboardProps) {
   const handleSettings = () => {
     handleClose();
     window.location.href = '/settings';
+  };
+
+  const handleCreateTestTrip = async () => {
+    setIsCreatingTest(true);
+    await createTestTrip();
+    setIsCreatingTest(false);
   };
 
   return (
@@ -141,10 +151,15 @@ export default function Dashboard({ trips, user }: DashboardProps) {
       </AppBar>
 
       <Container component="main" maxWidth="lg" sx={{ py: { xs: 2, md: 4 }, flex: 1 }}>
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h3" component="h1" sx={{ color: 'text.primary' }}>
             Your Trips
           </Typography>
+          {process.env.NODE_ENV === 'development' && (
+            <IconButton onClick={handleCreateTestTrip} disabled={isCreatingTest} color="primary" title="Create Test Trip">
+              {isCreatingTest ? <CircularProgress size={24} /> : <Typography variant="caption" sx={{ border: '1px dashed', p: 1 }}>+ Test Trip</Typography>}
+            </IconButton>
+          )}
         </Box>
 
         <Grid container spacing={3}>
