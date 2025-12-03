@@ -48,7 +48,7 @@ export default function Dashboard({ trips, user }: DashboardProps) {
 
   const handleSettings = () => {
     handleClose();
-    // Settings functionality to be implemented
+    window.location.href = '/settings';
   };
 
   return (

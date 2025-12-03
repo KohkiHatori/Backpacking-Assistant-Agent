@@ -40,6 +40,7 @@ export default function CreateTripPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [scriptLoaded, setScriptLoaded] = useState(false);
 
   // Reset the form when the component mounts
   useEffect(() => {
@@ -193,7 +194,8 @@ export default function CreateTripPage() {
     <>
       <Script
         src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
-        strategy="beforeInteractive"
+        strategy="lazyOnload"
+        onLoad={() => setScriptLoaded(true)}
       />
       <Box sx={{ px: 3, pt: 3 }}>
         <IconButton
@@ -231,7 +233,15 @@ export default function CreateTripPage() {
             ))}
           </Stepper>
           <Box sx={{ minHeight: "400px", display: "flex", flexDirection: "column" }}>
-            <Box sx={{ flex: 1 }}>{renderStep()}</Box>
+            <Box sx={{ flex: 1 }}>
+              {step === 0 && !scriptLoaded ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                renderStep()
+              )}
+            </Box>
             <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}>
               <Button disabled={step === 0} onClick={prevStep}>
                 Back
