@@ -44,6 +44,50 @@ interface AccommodationRecommendationsModalProps {
   nightsCount: number;
 }
 
+// Helper to clean up partial markdown artifacts
+const sanitizeText = (text: string) => {
+  if (!text) return "";
+
+  // If text starts with ** but doesn't have a closing **, strip the opening **
+  // This happens when the extraction regex cuts off the text before the closing **
+  if (text.startsWith('**') && text.indexOf('**', 2) === -1) {
+    return text.substring(2);
+  }
+
+  return text;
+};
+
+// Simple markdown parser for **bold** text and newlines
+const renderMarkdown = (text: string | undefined) => {
+  if (!text) return null;
+  if (typeof text !== 'string') return String(text);
+
+  const sanitized = sanitizeText(text);
+
+  // Split by **...** pattern, capturing the delimiter
+  // Using [\s\S] to match any character including newlines
+  const parts = sanitized.split(/(\*\*[\s\S]*?\*\*)/g);
+
+  return (
+    <span>
+      {parts.map((part, index) => {
+        // Check if this part is a bold section
+        if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+          return <strong key={index}>{part.slice(2, -2)}</strong>;
+        }
+
+        // For non-bold parts, handle newlines
+        return part.split('\n').map((line, lineIndex, array) => (
+          <span key={`${index}-${lineIndex}`}>
+            {line}
+            {lineIndex < array.length - 1 && <br />}
+          </span>
+        ));
+      })}
+    </span>
+  );
+};
+
 export default function AccommodationRecommendationsModal({
   open,
   onClose,
@@ -177,118 +221,118 @@ export default function AccommodationRecommendationsModal({
         )}
 
         {!loading && recommendations.length > 0 &&
-         recommendations.filter((rec) => rec.name && rec.name.length > 5 && rec.price_per_night > 0).length === 0 && (
-          <Alert severity="warning">
-            Unable to generate valid recommendations. Please try again or use the chat assistant for personalized suggestions.
-          </Alert>
-        )}
+          recommendations.filter((rec) => rec.name && rec.name.length > 5 && rec.price_per_night > 0).length === 0 && (
+            <Alert severity="warning">
+              Unable to generate valid recommendations. Please try again or use the chat assistant for personalized suggestions.
+            </Alert>
+          )}
 
         {!loading && recommendations.length > 0 &&
-         recommendations.filter((rec) => rec.name && rec.name.length > 5 && rec.price_per_night > 0).length > 0 && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {recommendations
-              .filter((rec) => rec.name && rec.name.length > 5 && rec.price_per_night > 0)
-              .map((rec, index) => (
-              <Card
-                key={index}
-                variant="outlined"
-                sx={{
-                  borderRadius: 2,
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    boxShadow: 2,
-                    borderColor: 'primary.main',
-                  },
-                }}
-              >
-                <CardContent>
-                  {/* Header */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1.5, gap: 2 }}>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="h6" component="div" sx={{ mb: 1, wordBreak: 'break-word' }}>
-                        {getCategoryIcon(rec.range_category)} {rec.name}
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        <Chip
-                          label={rec.range_category}
-                          size="small"
-                          color={getCategoryColor(rec.range_category) as any}
-                        />
-                        {rec.type && rec.type !== 'hotel' && (
-                          <Chip label={rec.type} size="small" variant="outlined" />
-                        )}
-                      </Box>
-                    </Box>
-                    <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                      <Typography variant="h6" color="primary" sx={{ whiteSpace: 'nowrap' }}>
-                        {rec.currency} {rec.price_per_night}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        per night
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Divider sx={{ my: 1.5 }} />
-
-                  {/* Location */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
-                    <LocationOnIcon fontSize="small" color="action" />
-                    <Typography variant="body2" color="text.secondary">
-                      {rec.location}
-                    </Typography>
-                  </Box>
-
-                  {/* Description */}
-                  {rec.description && (
-                    <Typography variant="body2" sx={{ mb: 1.5, lineHeight: 1.6 }}>
-                      {rec.description}
-                    </Typography>
-                  )}
-
-                  {/* Why it fits */}
-                  {rec.why_fits && (
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        borderRadius: 1,
-                        bgcolor: 'rgba(25, 118, 210, 0.08)',
-                        border: '1px solid rgba(25, 118, 210, 0.2)',
-                      }}
-                    >
-                      <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
-                        Why this fits:
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {rec.why_fits}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Total cost */}
-                  <Box
+          recommendations.filter((rec) => rec.name && rec.name.length > 5 && rec.price_per_night > 0).length > 0 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {recommendations
+                .filter((rec) => rec.name && rec.name.length > 5 && rec.price_per_night > 0)
+                .map((rec, index) => (
+                  <Card
+                    key={index}
+                    variant="outlined"
                     sx={{
-                      mt: 1.5,
-                      pt: 1.5,
-                      borderTop: '1px solid',
-                      borderColor: 'divider',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
+                      borderRadius: 2,
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        boxShadow: 2,
+                        borderColor: 'primary.main',
+                      },
                     }}
                   >
-                    <Typography variant="body2" color="text.secondary">
-                      Total for {rec.nights_count} {rec.nights_count === 1 ? 'night' : 'nights'}
-                    </Typography>
-                    <Typography variant="h6" color="primary">
-                      {rec.currency} {rec.total_cost}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            ))}
-          </Box>
-        )}
+                    <CardContent>
+                      {/* Header */}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1.5, gap: 2 }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="h6" component="div" sx={{ mb: 1, wordBreak: 'break-word' }}>
+                            {getCategoryIcon(rec.range_category)} {renderMarkdown(rec.name)}
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            <Chip
+                              label={rec.range_category}
+                              size="small"
+                              color={getCategoryColor(rec.range_category) as any}
+                            />
+                            {rec.type && rec.type !== 'hotel' && (
+                              <Chip label={rec.type} size="small" variant="outlined" />
+                            )}
+                          </Box>
+                        </Box>
+                        <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                          <Typography variant="h6" color="primary" sx={{ whiteSpace: 'nowrap' }}>
+                            {rec.currency} {rec.price_per_night}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            per night
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Divider sx={{ my: 1.5 }} />
+
+                      {/* Location */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
+                        <LocationOnIcon fontSize="small" color="action" />
+                        <Typography variant="body2" color="text.secondary">
+                          {rec.location}
+                        </Typography>
+                      </Box>
+
+                      {/* Description */}
+                      {rec.description && (
+                        <Typography variant="body2" sx={{ mb: 1.5, lineHeight: 1.6 }} component="div">
+                          {renderMarkdown(rec.description)}
+                        </Typography>
+                      )}
+
+                      {/* Why it fits */}
+                      {rec.why_fits && (
+                        <Box
+                          sx={{
+                            p: 1.5,
+                            borderRadius: 1,
+                            bgcolor: 'rgba(25, 118, 210, 0.08)',
+                            border: '1px solid rgba(25, 118, 210, 0.2)',
+                          }}
+                        >
+                          <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                            Why this fits:
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" component="div">
+                            {renderMarkdown(rec.why_fits)}
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {/* Total cost */}
+                      <Box
+                        sx={{
+                          mt: 1.5,
+                          pt: 1.5,
+                          borderTop: '1px solid',
+                          borderColor: 'divider',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Total for {rec.nights_count} {rec.nights_count === 1 ? 'night' : 'nights'}
+                        </Typography>
+                        <Typography variant="h6" color="primary">
+                          {rec.currency} {rec.total_cost}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                ))}
+            </Box>
+          )}
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
