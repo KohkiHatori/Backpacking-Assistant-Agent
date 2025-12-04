@@ -99,7 +99,6 @@ You have access to tools to modify the itinerary and find accommodations.
 - If a tool returns a Job ID or status, inform the user that the process has started.
 - Ask clarifying questions if the user's request is ambiguous.`,
     messages: coreMessages,
-    maxSteps: 5,
     tools: {
       modifyItinerary: tool({
         description: "Modify the current trip itinerary based on user request",
