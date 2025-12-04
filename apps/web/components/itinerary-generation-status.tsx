@@ -43,6 +43,7 @@ export default function ItineraryGenerationStatus({ tripId, jobId }: ItineraryGe
 
   // Failed state
   if (isFailed) {
+    const errorMessage = error instanceof Error ? error.message : error;
     return (
       <Alert
         severity="error"
@@ -50,7 +51,7 @@ export default function ItineraryGenerationStatus({ tripId, jobId }: ItineraryGe
         sx={{ mb: 3 }}
       >
         <AlertTitle>Generation Failed</AlertTitle>
-        {error || "There was an error generating your itinerary. Please try again."}
+        {errorMessage || "There was an error generating your itinerary. Please try again."}
       </Alert>
     );
   }
