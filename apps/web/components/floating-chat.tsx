@@ -44,7 +44,7 @@ export default function FloatingChat({ tripId }: FloatingChatProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-    await sendMessage({ text: input, body: { tripId } });
+    await sendMessage({ text: input }, { body: { tripId } });
     setInput("");
   };
 
