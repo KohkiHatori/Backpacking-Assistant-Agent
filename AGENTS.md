@@ -1,1 +1,1 @@
-Do NOT make unnecessary markdown files. 
+Do NOT make unnecessary markdown or txt files of summary documents

@@ -57,10 +57,23 @@ export default function Dashboard({ trips, user }: DashboardProps) {
 
   const handleCreateTestTrip = async () => {
     setIsCreatingTest(true);
+    console.log("[TEST TRIP] Starting test trip creation...");
     const result = await createTestTrip();
+    console.log("[TEST TRIP] Result:", result);
     setIsCreatingTest(false);
+
     if (result.success && result.tripId) {
+      // Store job_id in localStorage just like the regular creation flow
+      if (result.jobId) {
+        console.log("[TEST TRIP] Storing job_id in localStorage:", result.jobId);
+        localStorage.setItem(`itinerary-job-${result.tripId}`, result.jobId);
+      } else {
+        console.warn("[TEST TRIP] No job_id returned!");
+      }
       window.location.href = `/trip/${result.tripId}`;
+    } else {
+      console.error("[TEST TRIP] Failed:", result.error);
+      alert(`Failed to create test trip: ${result.error || "Unknown error"}`);
     }
   };
 

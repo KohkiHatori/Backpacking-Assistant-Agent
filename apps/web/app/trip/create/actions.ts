@@ -9,8 +9,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Get API URL from environment variable
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Get API URL from environment variable and remove trailing slash
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
 
 async function generateTripNameAndDescription(tripData: any) {
   try {
@@ -54,6 +54,36 @@ async function generateTripNameAndDescription(tripData: any) {
   }
 }
 
+async function startItineraryGeneration(tripId: string) {
+  try {
+    console.log(`[DEBUG] Starting itinerary generation for trip: ${tripId}`);
+    console.log(`[DEBUG] API URL: ${API_URL}/itinerary/generate`);
+
+    const response = await fetch(`${API_URL}/itinerary/generate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ trip_id: tripId }),
+    });
+
+    console.log(`[DEBUG] Itinerary generate response status: ${response.status}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Failed to start itinerary generation:", errorText);
+      return null;
+    }
+
+    const result = await response.json();
+    console.log(`[DEBUG] Itinerary generation started, job_id: ${result.job_id}`);
+    return result.job_id;
+  } catch (error) {
+    console.error("Error starting itinerary generation:", error);
+    return null;
+  }
+}
+
 export async function createTrip(tripData: any) {
   const session = await getServerSession(authOptions);
 
@@ -68,8 +98,11 @@ export async function createTrip(tripData: any) {
     throw new Error("User ID not found in session");
   }
 
+  console.log("[DEBUG] Step 1: Generating name and description...");
   const { name, description } = await generateTripNameAndDescription(tripData);
+  console.log("[DEBUG] Step 1 complete:", { name, description });
 
+  console.log("[DEBUG] Step 2: Saving trip to database...");
   const { data, error } = await supabase.from("trips").insert([
     {
       user_id: userId,
@@ -95,5 +128,21 @@ export async function createTrip(tripData: any) {
     throw new Error("Failed to create trip");
   }
 
-  return data?.[0];
+  const trip = data?.[0];
+  console.log("[DEBUG] Step 2 complete. Trip ID:", trip?.id);
+
+  // Automatically start itinerary generation in background
+  console.log("[DEBUG] Step 3: Starting itinerary generation...");
+  let jobId: string | null = null;
+  if (trip?.id) {
+    jobId = await startItineraryGeneration(trip.id);
+    if (jobId) {
+      console.log(`[DEBUG] Step 3 complete. Job ID: ${jobId}`);
+    } else {
+      console.log("[DEBUG] Step 3: No job ID returned (generation may have failed)");
+    }
+  }
+
+  console.log("[DEBUG] Returning from createTrip:", { tripId: trip?.id, jobId });
+  return { trip, jobId };
 }

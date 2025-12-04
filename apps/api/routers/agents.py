@@ -2,7 +2,10 @@
 
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any
-from schemas.trip_schemas import TripCreateRequest, TripNameDescriptionResponse
+from schemas.trip_schemas import (
+    TripCreateRequest,
+    TripNameDescriptionResponse
+)
 from services.trip_service import get_trip_service, TripService
 
 router = APIRouter(prefix="/agents", tags=["agents"])

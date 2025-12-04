@@ -10,6 +10,8 @@ import { PreferencesStep } from "@/components/trip-creation/preferences-step";
 import { TransportationStep } from "@/components/trip-creation/transportation-step";
 import { BudgetStep } from "@/components/trip-creation/budget-step";
 import { updateTrip } from "@/app/trip/[id]/actions";
+import ItineraryEmptyState from "./itinerary-empty-state";
+import ItineraryLiveView from "./itinerary-live-view";
 import Script from "next/script";
 import { AdapterDateFns } from "@mui/x-date-pickers-pro/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers-pro/LocalizationProvider";
@@ -97,10 +99,31 @@ function a11yProps(index: number) {
 export default function TripView({ trip, itineraryItems, tasks }: TripViewProps) {
   const [value, setValue] = useState(0);
   const [currentDay, setCurrentDay] = useState(1);
+  const [isHydrated, setIsHydrated] = useState(false);
   const store = useStore();
   const [saving, setSaving] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
+
+  // Restore tab from URL hash on mount (client-side only)
+  useEffect(() => {
+    setIsHydrated(true);
+    const hash = window.location.hash;
+    if (hash === '#itinerary') {
+      setValue(1);
+    } else if (hash === '#tasks') {
+      setValue(2);
+    } else if (hash === '#map') {
+      setValue(3);
+    }
+  }, []);
+
+  // Update URL hash when tab changes
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setValue(newValue);
+    const tabs = ['overview', 'itinerary', 'tasks', 'map'];
+    window.location.hash = tabs[newValue] || 'overview';
+  };
 
   // Edit mode states for each section
   const [editingTripInfo, setEditingTripInfo] = useState(false);
@@ -204,9 +227,6 @@ export default function TripView({ trip, itineraryItems, tasks }: TripViewProps)
     setEditingBudget(false);
   };
 
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-    setValue(newValue);
-  };
 
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return "Not set";
@@ -288,13 +308,14 @@ export default function TripView({ trip, itineraryItems, tasks }: TripViewProps)
           strategy="afterInteractive"
           onLoad={() => setScriptLoaded(true)}
         />
-        <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+        <Box sx={{ borderBottom: 1, borderColor: "divider" }} suppressHydrationWarning>
           <Tabs
             value={value}
-            onChange={handleChange}
+            onChange={handleTabChange}
             aria-label="trip tabs"
             variant="fullWidth"
             scrollButtons="auto"
+            suppressHydrationWarning
           >
             <Tab label="Overview" {...a11yProps(0)} />
             <Tab label="Itinerary" {...a11yProps(1)} />
@@ -603,91 +624,106 @@ export default function TripView({ trip, itineraryItems, tasks }: TripViewProps)
 
         {/* Itinerary Tab */}
         <CustomTabPanel value={value} index={1}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-            <Box sx={{ width: 100 }}>
-              {currentDay > 1 && (
-                <Button
-                  onClick={handlePrevDay}
-                  variant="outlined"
-                  fullWidth
-                >
-                  <ChevronLeft />
-                </Button>
-              )}
-            </Box>
+          {/* Use live view that auto-refreshes */}
+          <ItineraryLiveView
+            tripId={trip.id}
+            startDate={trip.start_date}
+            endDate={trip.end_date}
+            currency={trip.currency}
+          />
+          {/* Old static view - keeping as fallback
+          {itineraryItems.length === 0 ? (
+            <ItineraryEmptyState tripId={trip.id} />
+          ) : (
+            <>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box sx={{ width: 100 }}>
+                  {currentDay > 1 && (
+                    <Button
+                      onClick={handlePrevDay}
+                      variant="outlined"
+                      fullWidth
+                    >
+                      <ChevronLeft />
+                    </Button>
+                  )}
+                </Box>
 
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h5" fontWeight="bold">
-                Day {currentDay}
-              </Typography>
-              {currentDayDate && (
-                <Typography variant="subtitle1" color="text.secondary">
-                  {format(currentDayDate, "EEEE, MMMM d")}
-                </Typography>
-              )}
-            </Box>
-
-            <Box sx={{ width: 100 }}>
-              {currentDay < maxDays && (
-                <Button
-                  onClick={handleNextDay}
-                  variant="outlined"
-                  fullWidth
-                >
-                  <ChevronRight />
-                </Button>
-              )}
-            </Box>
-          </Box>
-
-          <Stack spacing={3}>
-            {itemsByDay[currentDay]?.length ? (
-              itemsByDay[currentDay]!.map((item) => (
-                <Paper key={item.id} sx={{ p: 2, display: 'flex', gap: 2 }}>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 80, gap: 1 }}>
-                    {getTypeIcon(item.type)}
-                    <Typography variant="caption" color="text.secondary">
-                      {item.start_time?.slice(0, 5) || "--:--"}
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h5" fontWeight="bold">
+                    Day {currentDay}
+                  </Typography>
+                  {currentDayDate && (
+                    <Typography variant="subtitle1" color="text.secondary">
+                      {format(currentDayDate, "EEEE, MMMM d")}
                     </Typography>
-                  </Box>
+                  )}
+                </Box>
 
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="h6">{item.title}</Typography>
-                    {item.description && (
-                      <Typography variant="body2" color="text.secondary" paragraph sx={{ mb: 1 }}>
-                        {item.description}
-                      </Typography>
-                    )}
+                <Box sx={{ width: 100 }}>
+                  {currentDay < maxDays && (
+                    <Button
+                      onClick={handleNextDay}
+                      variant="outlined"
+                      fullWidth
+                    >
+                      <ChevronRight />
+                    </Button>
+                  )}
+                </Box>
+              </Box>
 
-                    <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                      {item.location && (
-                        <Chip
-                          icon={<LocationOn fontSize="small" />}
-                          label={item.location}
-                          size="small"
-                          variant="outlined"
-                        />
-                      )}
-                      {item.cost && item.cost > 0 && (
-                        <Chip
-                          icon={<AttachMoney fontSize="small" />}
-                          label={`${item.cost} ${trip.currency}`}
-                          size="small"
-                          variant="outlined"
-                        />
-                      )}
-                    </Box>
-                  </Box>
-                </Paper>
-              ))
-            ) : (
-              <Paper sx={{ p: 4, textAlign: 'center' }}>
-                <Typography color="text.secondary">
-                  No items planned for Day {currentDay} yet.
-                </Typography>
-              </Paper>
-            )}
-          </Stack>
+              <Stack spacing={3}>
+                {itemsByDay[currentDay]?.length ? (
+                  itemsByDay[currentDay]!.map((item) => (
+                    <Paper key={item.id} sx={{ p: 2, display: 'flex', gap: 2 }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 80, gap: 1 }}>
+                        {getTypeIcon(item.type)}
+                        <Typography variant="caption" color="text.secondary">
+                          {item.start_time?.slice(0, 5) || "--:--"}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6">{item.title}</Typography>
+                        {item.description && (
+                          <Typography variant="body2" color="text.secondary" paragraph sx={{ mb: 1 }}>
+                            {item.description}
+                          </Typography>
+                        )}
+
+                        <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                          {item.location && (
+                            <Chip
+                              icon={<LocationOn fontSize="small" />}
+                              label={item.location}
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
+                          {item.cost && item.cost > 0 && (
+                            <Chip
+                              icon={<AttachMoney fontSize="small" />}
+                              label={`${item.cost} ${trip.currency}`}
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                    </Paper>
+                  ))
+                ) : (
+                  <Paper sx={{ p: 4, textAlign: 'center' }}>
+                    <Typography color="text.secondary">
+                      No items planned for Day {currentDay} yet.
+                    </Typography>
+                  </Paper>
+                )}
+              </Stack>
+            </>
+          )}
+          */}
         </CustomTabPanel>
 
         {/* Tasks Tab */}

@@ -1,7 +1,7 @@
 """Pydantic schemas for trip-related data validation."""
 
 from pydantic import BaseModel, Field
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Dict, Any
 from datetime import date
 
 
@@ -66,3 +66,53 @@ class AgentState(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+
+
+class ItineraryGenerationRequest(BaseModel):
+    """Request schema for generating itinerary."""
+
+    trip_id: str = Field(..., description="Trip ID to generate itinerary for")
+
+
+class ItineraryModificationRequest(BaseModel):
+    """Request schema for modifying existing itinerary."""
+
+    trip_id: str = Field(..., description="Trip ID")
+    modification: str = Field(..., description="Modification request from user")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "trip_id": "123e4567-e89b-12d3-a456-426614174000",
+                "modification": "Add more food experiences and remove the museum visit on day 3"
+            }
+        }
+
+
+class JobStatusResponse(BaseModel):
+    """Response schema for job status."""
+
+    job_id: str = Field(..., description="Job ID")
+    trip_id: str = Field(..., description="Associated trip ID")
+    status: str = Field(..., description="Job status: pending, processing, completed, failed")
+    progress: int = Field(..., ge=0, le=100, description="Progress percentage")
+    message: Optional[str] = Field(None, description="Status message")
+    result: Optional[Dict[str, Any]] = Field(None, description="Job result when completed")
+    error: Optional[str] = Field(None, description="Error message if failed")
+    created_at: str = Field(..., description="Creation timestamp")
+    updated_at: str = Field(..., description="Last update timestamp")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "job_id": "job-123",
+                "trip_id": "trip-456",
+                "status": "processing",
+                "progress": 50,
+                "message": "Generating day 3 of 5",
+                "result": None,
+                "error": None,
+                "created_at": "2024-12-04T00:00:00Z",
+                "updated_at": "2024-12-04T00:01:30Z"
+            }
+        }

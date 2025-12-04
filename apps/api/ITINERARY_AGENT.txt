@@ -1,0 +1,193 @@
+Itinerary Agent Implementation
+===============================
+
+✅ COMPLETE: Background itinerary generation with polling
+
+Components Created:
+-------------------
+
+1. Itinerary Agent (services/agents/sub_agents/itinerary_agent.py)
+   - Generates complete day-by-day itineraries using Gemini 2.5 Flash
+   - Modifies existing itineraries based on user requests
+   - Includes: activities, meals, transportation, accommodation
+   - Respects: budget, preferences, travel style, realistic timing
+
+2. Job Service (services/job_service.py) - Already existed
+   - Tracks background job status
+   - Stores progress (0-100%)
+   - Saves itinerary items to Supabase
+   - In-memory fallback for development
+
+3. Itinerary Router (routers/itinerary.py)
+   - POST /itinerary/generate - Start async itinerary generation
+   - POST /itinerary/modify - Modify existing itinerary
+   - GET /itinerary/status/{job_id} - Poll job status
+
+4. Schemas (schemas/trip_schemas.py)
+   - ItineraryGenerationRequest
+   - ItineraryModificationRequest
+   - JobStatusResponse
+
+API Endpoints:
+--------------
+
+1. Generate Itinerary (Async)
+   POST /itinerary/generate
+   Body: {"trip_id": "uuid"}
+   Returns: {"job_id": "...", "status": "pending", "progress": 0}
+
+2. Check Status (Polling)
+   GET /itinerary/status/{job_id}
+   Returns: {"job_id": "...", "status": "processing", "progress": 50, ...}
+
+3. Modify Itinerary (Async)
+   POST /itinerary/modify
+   Body: {
+     "trip_id": "uuid",
+     "modification": "Add more food experiences on day 2"
+   }
+   Returns: {"job_id": "...", "status": "pending", "progress": 0}
+
+Job Statuses:
+-------------
+- pending: Job created, not started yet
+- processing: AI is generating itinerary
+- completed: Done! Itinerary saved to database
+- failed: Error occurred
+
+How It Works:
+-------------
+
+1. Trip Creation Flow:
+   Frontend → POST /agents/generate-trip-name (fast, ~3s)
+   Frontend → Save trip to Supabase
+   Frontend → POST /itinerary/generate (returns job_id immediately)
+   Frontend → Poll GET /itinerary/status/{job_id} every 2s
+   Background → Generate itinerary (20-60s)
+   Background → Save to Supabase
+   Frontend → Get completed status → Refresh itinerary display
+
+2. Modification Flow:
+   User → Request modification
+   Frontend → POST /itinerary/modify
+   Frontend → Poll status
+   Background → Modify itinerary
+   Frontend → Show updated itinerary
+
+Frontend Integration (TanStack Query):
+--------------------------------------
+
+Install:
+npm install @tanstack/react-query
+
+Example Usage:
+
+// 1. Start generation
+const { mutate: generateItinerary } = useMutation({
+  mutationFn: (tripId: string) =>
+    fetch('/itinerary/generate', {
+      method: 'POST',
+      body: JSON.stringify({ trip_id: tripId })
+    }).then(r => r.json()),
+  onSuccess: (data) => {
+    setJobId(data.job_id)
+  }
+})
+
+// 2. Poll status
+const { data: jobStatus } = useQuery({
+  queryKey: ['itinerary-job', jobId],
+  queryFn: () =>
+    fetch(`/itinerary/status/${jobId}`).then(r => r.json()),
+  enabled: !!jobId && jobStatus?.status !== 'completed',
+  refetchInterval: 2000, // Poll every 2 seconds
+})
+
+// 3. Display progress
+{jobStatus?.status === 'processing' && (
+  <div>
+    <ProgressBar value={jobStatus.progress} />
+    <p>{jobStatus.message}</p>
+  </div>
+)}
+
+// 4. Invalidate itinerary query when done
+useEffect(() => {
+  if (jobStatus?.status === 'completed') {
+    queryClient.invalidateQueries(['itinerary', tripId])
+  }
+}, [jobStatus])
+
+Backend Testing:
+----------------
+
+1. Start server:
+   cd apps/api
+   python main.py
+
+2. Test generation:
+   curl -X POST http://localhost:8000/itinerary/generate \
+     -H "Content-Type: application/json" \
+     -d '{"trip_id": "your-trip-id"}'
+
+   # Returns: {"job_id": "...", "status": "pending"}
+
+3. Poll status:
+   curl http://localhost:8000/itinerary/status/{job_id}
+
+   # Keep polling until status is "completed"
+
+4. Check Supabase:
+   SELECT * FROM itinerary_items WHERE trip_id = 'your-trip-id';
+
+Generated Itinerary Structure:
+-------------------------------
+
+Each itinerary item includes:
+- day_number: 1, 2, 3, etc.
+- date: "2024-06-01"
+- start_time: "09:00:00"
+- end_time: "12:00:00"
+- title: "Visit Senso-ji Temple"
+- description: "Explore Tokyo's oldest temple..."
+- location: "Asakusa, Tokyo"
+- type: "activity" | "transport" | "accommodation" | "meal"
+- cost: 0 (in cents)
+- order_index: 0, 1, 2, etc. (for ordering within a day)
+
+Typical itinerary includes:
+- 4-6 activities per day
+- Breakfast, lunch, dinner recommendations
+- Transportation between locations
+- Accommodation for each night
+- Realistic timing (not overbooked)
+- Budget consideration
+
+Next Steps:
+-----------
+
+1. Update frontend to call /itinerary/generate after trip creation
+2. Implement polling UI with TanStack Query
+3. Show progress bar during generation
+4. Display itinerary when completed
+5. Add "Regenerate" and "Modify" buttons
+
+Production Considerations:
+--------------------------
+
+- Generation takes 20-60 seconds (Gemini API + processing)
+- Poll interval: 2-3 seconds (balance between UX and server load)
+- Railway: Background tasks work great (no cold starts)
+- Consider WebSockets for future (real-time updates)
+- Add retry logic for failed jobs
+- Store job history for debugging
+
+Cost Estimate:
+--------------
+
+- Gemini 2.5 Flash: $0.00001875 per 1K input tokens
+- Typical itinerary: ~2K tokens input, ~3K tokens output
+- Cost per generation: ~$0.0001 (0.01 cent)
+- 10,000 itineraries: ~$1
+
+Very affordable! 🎉

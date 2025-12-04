@@ -47,6 +47,23 @@ export default function CreateTripPage() {
     resetForm();
   }, [resetForm]);
 
+  // Fallback: Check if Google Maps is already loaded (in case onLoad doesn't fire)
+  useEffect(() => {
+    const checkGoogleMaps = () => {
+      if (typeof window !== 'undefined' && (window as any).google?.maps?.places) {
+        setScriptLoaded(true);
+      }
+    };
+
+    // Check immediately
+    checkGoogleMaps();
+
+    // Also check after a delay as a fallback
+    const timer = setTimeout(checkGoogleMaps, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // Check if user has entered any data
   const hasUnsavedData = (): boolean => {
     return (
@@ -107,9 +124,13 @@ export default function CreateTripPage() {
         budget: store.budget,
         currency: store.currency,
       };
-      const trip = await createTrip(tripData);
-      if (trip?.id) {
-        router.push(`/trip/${trip.id}`);
+      const result = await createTrip(tripData);
+      if (result?.trip?.id) {
+        // Store job_id in localStorage if available
+        if (result.jobId) {
+          localStorage.setItem(`itinerary-job-${result.trip.id}`, result.jobId);
+        }
+        router.push(`/trip/${result.trip.id}`);
       } else {
         router.push("/");
       }
@@ -198,8 +219,14 @@ export default function CreateTripPage() {
     <>
       <Script
         src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
-        strategy="lazyOnload"
-        onLoad={() => setScriptLoaded(true)}
+        strategy="afterInteractive"
+        onLoad={() => {
+          console.log('Google Maps script loaded');
+          setScriptLoaded(true);
+        }}
+        onError={(e) => {
+          console.error('Google Maps script failed to load:', e);
+        }}
       />
       <Box sx={{ px: 3, pt: 3 }}>
         <IconButton
