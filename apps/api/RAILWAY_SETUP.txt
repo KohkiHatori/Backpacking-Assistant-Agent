@@ -1,0 +1,82 @@
+Railway Deployment Quick Reference
+===================================
+
+Files Created:
+✅ railway.json - Railway configuration
+✅ .railwayignore - Files to exclude from deployment
+✅ Dockerfile - Updated to use $PORT env var
+✅ main.py - Updated to read PORT from environment
+
+Next Steps:
+-----------
+
+1. Install Railway CLI:
+   npm install -g @railway/cli
+   # or
+   brew install railway
+
+2. Login to Railway:
+   railway login
+
+3. Initialize project (from apps/api/):
+   cd apps/api
+   railway init
+
+4. Set environment variables:
+   railway variables set GEMINI_API_KEY=your_api_key_here
+   railway variables set SUPABASE_URL=your_supabase_url
+   railway variables set SUPABASE_SERVICE_ROLE_KEY=your_key
+   railway variables set ENVIRONMENT=production
+
+5. (Optional) Set allowed CORS origins for production:
+   railway variables set ALLOWED_ORIGINS=https://your-frontend.vercel.app,https://*.vercel.app
+
+6. Deploy:
+   railway up
+
+7. Get your deployment URL:
+   railway open
+   # Your API will be at: https://your-app.railway.app
+
+8. Test deployment:
+   curl https://your-app.railway.app/health
+
+9. Update frontend .env to use production API:
+   NEXT_PUBLIC_API_URL=https://your-app.railway.app
+
+Environment Variables Required in Railway:
+-------------------------------------------
+GEMINI_API_KEY=xxx                    # Required
+SUPABASE_URL=xxx                      # Required
+SUPABASE_SERVICE_ROLE_KEY=xxx         # Required
+ENVIRONMENT=production                # Optional (defaults to development)
+ALLOWED_ORIGINS=https://example.com   # Optional (comma-separated URLs)
+
+Note: Railway automatically provides PORT - don't set it!
+
+CI/CD Setup:
+------------
+For automatic deployments on git push:
+
+Option 1: Railway GitHub Integration (Easiest)
+- Go to Railway dashboard → Settings
+- Connect GitHub repository
+- Set root directory to: apps/api
+- Every push to main will auto-deploy!
+
+Option 2: GitHub Actions (More control)
+- Get Railway token: railway tokens create
+- Add token to GitHub Secrets as RAILWAY_TOKEN
+- Create .github/workflows/deploy-backend.yml (see full guide)
+
+Monitoring:
+-----------
+railway logs          # View logs
+railway status        # Check status
+railway open          # Open in browser
+
+Troubleshooting:
+----------------
+- Build fails: railway logs --deployment
+- Can't connect: Check CORS and environment variables
+- Slow cold starts: Upgrade from free tier to Hobby plan ($5/month)

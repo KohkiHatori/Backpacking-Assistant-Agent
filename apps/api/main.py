@@ -50,13 +50,16 @@ app = FastAPI(
 )
 
 # Configure CORS
+# Get allowed origins from environment or use defaults
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else [
+    "http://localhost:3000",  # Next.js dev server
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # Next.js dev server
-        "http://localhost:3001",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -97,9 +100,14 @@ if __name__ == "__main__":
     import uvicorn
 
     settings = get_settings()
+    # Use PORT from environment (for Railway/cloud deployments) or default to settings
+    port = int(os.getenv("PORT", settings.api_port))
+    # Disable reload in production
+    reload = settings.api_reload if os.getenv("ENVIRONMENT") == "development" else False
+
     uvicorn.run(
         "main:app",
         host=settings.api_host,
-        port=settings.api_port,
-        reload=settings.api_reload
+        port=port,
+        reload=reload
     )
