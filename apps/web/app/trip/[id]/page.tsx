@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTrip, getItineraryItems, getTasks } from "./actions";
 import TripView from "@/components/trip-view";
+import FloatingChat from "@/components/floating-chat";
 import { Container, Box, AppBar, Toolbar, IconButton, Typography } from "@mui/material";
 import Link from "next/link";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -58,6 +59,8 @@ export default async function TripPage({ params }: TripPageProps) {
       <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
         <TripView trip={trip} itineraryItems={itineraryItems} tasks={tasks} />
       </Container>
+
+      <FloatingChat tripId={id} />
 
     </Box>
   );

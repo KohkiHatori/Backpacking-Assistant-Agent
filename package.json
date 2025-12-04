@@ -18,13 +18,16 @@
   },
   "packageManager": "npm@10.8.2",
   "dependencies": {
+    "@ai-sdk/react": "^2.0.106",
     "@google/generative-ai": "^0.24.1",
     "@mui/x-date-pickers": "^8.19.0",
     "@supabase/ssr": "^0.8.0",
+    "ai": "^5.0.106",
     "date-fns": "^2.30.0",
     "react": "19.0.0-rc-f994737d14-20240522",
     "react-dom": "19.0.0-rc-f994737d14-20240522",
-    "react-google-places-autocomplete": "^4.1.0"
+    "react-google-places-autocomplete": "^4.1.0",
+    "react-markdown": "^10.1.0"
   },
   "overrides": {
     "react": "19.0.0-rc-f994737d14-20240522",
