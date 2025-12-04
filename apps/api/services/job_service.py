@@ -171,6 +171,45 @@ class JobService:
             print(f"Error saving itinerary items: {e}")
             raise
 
+    async def save_tasks(
+        self,
+        trip_id: str,
+        tasks: list[Dict[str, Any]]
+    ) -> None:
+        """
+        Save tasks to Supabase.
+
+        Args:
+            trip_id: Trip ID
+            tasks: List of task dictionaries
+        """
+        if not self.supabase:
+            print("Warning: Supabase not configured, cannot save tasks")
+            return
+
+        try:
+            # Prepare tasks for insertion
+            db_tasks = []
+            for task in tasks:
+                db_task = {
+                    "trip_id": trip_id,
+                    "title": task.get("title"),
+                    "description": task.get("description"),
+                    "category": task.get("category", "general"),
+                    "priority": task.get("priority", "medium"),
+                    "due_date": None,  # Set to None - relative dates like "2 weeks before" can't be stored as timestamp
+                    "is_completed": task.get("completed", False)  # Database column is is_completed
+                }
+                db_tasks.append(db_task)
+
+            # Insert into Supabase
+            result = self.supabase.table("tasks").insert(db_tasks).execute()
+            print(f"Saved {len(db_tasks)} tasks for trip {trip_id}")
+
+        except Exception as e:
+            print(f"Error saving tasks: {e}")
+            raise
+
 
 # Singleton instance
 _service_instance = None

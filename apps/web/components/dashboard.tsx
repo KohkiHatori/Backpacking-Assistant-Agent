@@ -63,12 +63,18 @@ export default function Dashboard({ trips, user }: DashboardProps) {
     setIsCreatingTest(false);
 
     if (result.success && result.tripId) {
-      // Store job_id in localStorage just like the regular creation flow
+      // Store job IDs in localStorage just like the regular creation flow
       if (result.jobId) {
-        console.log("[TEST TRIP] Storing job_id in localStorage:", result.jobId);
+        console.log("[TEST TRIP] Storing itinerary job_id in localStorage:", result.jobId);
         localStorage.setItem(`itinerary-job-${result.tripId}`, result.jobId);
       } else {
-        console.warn("[TEST TRIP] No job_id returned!");
+        console.warn("[TEST TRIP] No itinerary job_id returned!");
+      }
+      if (result.taskJobId) {
+        console.log("[TEST TRIP] Storing task job_id in localStorage:", result.taskJobId);
+        localStorage.setItem(`task-job-${result.tripId}`, result.taskJobId);
+      } else {
+        console.warn("[TEST TRIP] No task job_id returned!");
       }
       window.location.href = `/trip/${result.tripId}`;
     } else {

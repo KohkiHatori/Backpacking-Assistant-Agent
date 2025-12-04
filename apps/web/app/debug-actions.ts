@@ -23,11 +23,12 @@ export async function createTestTrip() {
     const result = await createTrip(dummyData);
     revalidatePath("/");
 
-    // Return both trip ID and job ID (same as regular trip creation)
+    // Return trip ID and job IDs (same as regular trip creation)
     return {
       success: true,
       tripId: result?.trip?.id,
-      jobId: result?.jobId
+      jobId: result?.jobId,
+      taskJobId: result?.taskJobId
     };
   } catch (error) {
     console.error("Failed to create test trip:", error);

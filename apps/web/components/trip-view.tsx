@@ -12,6 +12,7 @@ import { BudgetStep } from "@/components/trip-creation/budget-step";
 import { updateTrip } from "@/app/trip/[id]/actions";
 import ItineraryEmptyState from "./itinerary-empty-state";
 import ItineraryLiveView from "./itinerary-live-view";
+import TasksLiveView from "./tasks-live-view";
 import Script from "next/script";
 import { AdapterDateFns } from "@mui/x-date-pickers-pro/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers-pro/LocalizationProvider";
@@ -728,120 +729,7 @@ export default function TripView({ trip, itineraryItems, tasks }: TripViewProps)
 
         {/* Tasks Tab */}
         <CustomTabPanel value={value} index={2}>
-          {/* 1. Task Progress Section */}
-          <Paper sx={{ p: 3, mb: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">Trip Progress</Typography>
-              <Typography variant="h6" color="primary">
-                {Math.round(progress)}%
-              </Typography>
-            </Box>
-            <LinearProgress
-              variant="determinate"
-              value={progress}
-              sx={{ height: 10, borderRadius: 5 }}
-            />
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {completedTasks} of {totalTasks} tasks completed
-            </Typography>
-          </Paper>
-
-          <Grid container spacing={3}>
-            {/* 2. General Tasks (Left) */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Paper sx={{ p: 3, height: '100%' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <Assignment color="action" />
-                  <Typography variant="h6">General Tasks</Typography>
-                </Box>
-                <Divider sx={{ mb: 2 }} />
-
-                {generalTasks.length > 0 ? (
-                  <List>
-                    {generalTasks.map((task) => (
-                      <ListItem key={task.id} disablePadding sx={{ mb: 1 }}>
-                        <ListItemIcon sx={{ minWidth: 40 }}>
-                          <Checkbox
-                            edge="start"
-                            checked={task.is_completed}
-                            tabIndex={-1}
-                            disableRipple
-                            // Read-only for now, would need a server action to toggle
-                            inputProps={{ 'aria-labelledby': `task-list-label-${task.id}` }}
-                          />
-                        </ListItemIcon>
-                        <ListItemText
-                          id={`task-list-label-${task.id}`}
-                          primary={task.title}
-                          secondary={task.description}
-                          sx={{
-                            textDecoration: task.is_completed ? 'line-through' : 'none',
-                            color: task.is_completed ? 'text.disabled' : 'text.primary',
-                          }}
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                ) : (
-                  <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-                    No general tasks.
-                  </Typography>
-                )}
-              </Paper>
-            </Grid>
-
-            {/* 3. Destination Tasks (Right) */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Paper sx={{ p: 3, height: '100%' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <MapIcon color="action" />
-                  <Typography variant="h6">Destination Tasks</Typography>
-                </Box>
-                <Divider sx={{ mb: 2 }} />
-
-                {destinationTasks.length > 0 ? (
-                  <List>
-                    {destinationTasks.map((task) => (
-                      <ListItem key={task.id} disablePadding sx={{ mb: 1 }}>
-                        <ListItemIcon sx={{ minWidth: 40 }}>
-                          <Checkbox
-                            edge="start"
-                            checked={task.is_completed}
-                            tabIndex={-1}
-                            disableRipple
-                          />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={task.title}
-                          secondary={
-                            <>
-                              {task.category && (
-                                <Chip
-                                  label={task.category}
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{ mr: 1, height: 20, fontSize: '0.7rem' }}
-                                />
-                              )}
-                              {task.description}
-                            </>
-                          }
-                          sx={{
-                            textDecoration: task.is_completed ? 'line-through' : 'none',
-                            color: task.is_completed ? 'text.disabled' : 'text.primary',
-                          }}
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                ) : (
-                  <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-                    No destination-specific tasks.
-                  </Typography>
-                )}
-              </Paper>
-            </Grid>
-          </Grid>
+          <TasksLiveView tripId={trip.id} />
         </CustomTabPanel>
         <Snackbar
           open={snackbarOpen}

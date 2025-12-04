@@ -84,6 +84,36 @@ async function startItineraryGeneration(tripId: string) {
   }
 }
 
+async function startTaskGeneration(tripId: string) {
+  try {
+    console.log(`[DEBUG] Starting task generation for trip: ${tripId}`);
+    console.log(`[DEBUG] API URL: ${API_URL}/tasks/generate`);
+
+    const response = await fetch(`${API_URL}/tasks/generate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ trip_id: tripId }),
+    });
+
+    console.log(`[DEBUG] Task generate response status: ${response.status}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Failed to start task generation:", errorText);
+      return null;
+    }
+
+    const result = await response.json();
+    console.log(`[DEBUG] Task generation started, job_id: ${result.job_id}`);
+    return result.job_id;
+  } catch (error) {
+    console.error("Error starting task generation:", error);
+    return null;
+  }
+}
+
 export async function createTrip(tripData: any) {
   const session = await getServerSession(authOptions);
 
@@ -131,18 +161,38 @@ export async function createTrip(tripData: any) {
   const trip = data?.[0];
   console.log("[DEBUG] Step 2 complete. Trip ID:", trip?.id);
 
-  // Automatically start itinerary generation in background
+  // Automatically start itinerary and task generation in background
   console.log("[DEBUG] Step 3: Starting itinerary generation...");
-  let jobId: string | null = null;
+  let itineraryJobId: string | null = null;
+  let taskJobId: string | null = null;
+
   if (trip?.id) {
-    jobId = await startItineraryGeneration(trip.id);
-    if (jobId) {
-      console.log(`[DEBUG] Step 3 complete. Job ID: ${jobId}`);
+    // Start both generations in parallel
+    const [itineraryResult, taskResult] = await Promise.all([
+      startItineraryGeneration(trip.id),
+      startTaskGeneration(trip.id)
+    ]);
+
+    itineraryJobId = itineraryResult;
+    taskJobId = taskResult;
+
+    if (itineraryJobId) {
+      console.log(`[DEBUG] Step 3a complete. Itinerary Job ID: ${itineraryJobId}`);
     } else {
-      console.log("[DEBUG] Step 3: No job ID returned (generation may have failed)");
+      console.log("[DEBUG] Step 3a: No itinerary job ID returned (generation may have failed)");
+    }
+
+    if (taskJobId) {
+      console.log(`[DEBUG] Step 3b complete. Task Job ID: ${taskJobId}`);
+    } else {
+      console.log("[DEBUG] Step 3b: No task job ID returned (generation may have failed)");
     }
   }
 
-  console.log("[DEBUG] Returning from createTrip:", { tripId: trip?.id, jobId });
-  return { trip, jobId };
+  console.log("[DEBUG] Returning from createTrip:", {
+    tripId: trip?.id,
+    itineraryJobId,
+    taskJobId
+  });
+  return { trip, jobId: itineraryJobId, taskJobId };
 }

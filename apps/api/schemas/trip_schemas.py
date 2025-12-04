@@ -89,6 +89,33 @@ class ItineraryModificationRequest(BaseModel):
         }
 
 
+class TaskGenerationRequest(BaseModel):
+    """Request schema for generating tasks."""
+
+    trip_id: str = Field(..., description="Trip ID to generate tasks for")
+
+
+class Task(BaseModel):
+    """Schema for a single task."""
+
+    title: str = Field(..., description="Task title")
+    description: Optional[str] = Field(None, description="Task description (include timing recommendations here)")
+    category: str = Field(..., description="Task category (general, visa, accommodation, etc.)")
+    priority: str = Field(..., description="Priority level: high, medium, low")
+    completed: bool = Field(default=False, description="Whether task is completed")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "title": "Apply for Japan visa",
+                "description": "Visit embassy website and submit visa application. Recommended: 4 weeks before trip",
+                "category": "visa",
+                "priority": "high",
+                "completed": False
+            }
+        }
+
+
 class JobStatusResponse(BaseModel):
     """Response schema for job status."""
 

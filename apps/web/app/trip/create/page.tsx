@@ -126,9 +126,12 @@ export default function CreateTripPage() {
       };
       const result = await createTrip(tripData);
       if (result?.trip?.id) {
-        // Store job_id in localStorage if available
+        // Store job IDs in localStorage if available
         if (result.jobId) {
           localStorage.setItem(`itinerary-job-${result.trip.id}`, result.jobId);
+        }
+        if (result.taskJobId) {
+          localStorage.setItem(`task-job-${result.trip.id}`, result.taskJobId);
         }
         router.push(`/trip/${result.trip.id}`);
       } else {
