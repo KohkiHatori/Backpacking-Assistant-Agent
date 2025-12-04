@@ -5,6 +5,7 @@ import os
 import json
 import re
 from .visa_agent import get_visa_agent
+from .vaccine_agent import get_vaccine_agent
 
 class TaskAgent:
     """
@@ -54,11 +55,14 @@ class TaskAgent:
                 - due_date: Suggested due date relative to trip (optional)
                 - completed: Boolean (always False for new tasks)
         """
-        # First, get visa-specific tasks using the visa agent
+        # Get specialized tasks from sub-agents
         visa_tasks = []
+        vaccine_tasks = []
+
         print(f"\n[TASK AGENT] Starting task generation for trip")
         print(f"[TASK AGENT] User citizenship provided: {user_citizenship}")
 
+        # 1. Get visa-specific tasks using the visa agent
         if user_citizenship:
             try:
                 print(f"[TASK AGENT] Initializing visa agent...")
@@ -79,6 +83,24 @@ class TaskAgent:
         else:
             print(f"[TASK AGENT] ⚠️  No user citizenship provided, skipping visa agent")
 
+        # 2. Get vaccine requirements using the vaccine agent
+        try:
+            print(f"[TASK AGENT] Initializing vaccine agent...")
+            vaccine_agent = get_vaccine_agent()
+            vaccine_tasks = vaccine_agent.generate_vaccine_tasks(trip_data, user_citizenship)
+            print(f"[TASK AGENT] ✓ Vaccine agent generated {len(vaccine_tasks)} vaccine-related tasks")
+
+            # Log task summaries
+            if vaccine_tasks:
+                print(f"[TASK AGENT] Vaccine tasks created:")
+                for i, task in enumerate(vaccine_tasks, 1):
+                    print(f"[TASK AGENT]   {i}. [{task.get('category')}] {task.get('title')}")
+        except Exception as e:
+            print(f"[TASK AGENT] ❌ Error calling vaccine agent: {e}")
+            import traceback
+            traceback.print_exc()
+            # Will continue without vaccine tasks
+
         # Generate general tasks using the LLM
         prompt = self._build_prompt(trip_data)
 
@@ -90,7 +112,7 @@ class TaskAgent:
             response = self.model.invoke(messages)
             general_tasks = self._parse_task_response(response.content)
 
-            # If we have visa tasks from the API, filter out generic visa tasks from LLM
+            # Filter out generic visa/health tasks from LLM if we have specialized tasks
             if visa_tasks:
                 # Remove LLM-generated visa tasks since we have specific ones from API
                 print(f"[TASK AGENT] Filtering out generic visa tasks from LLM")
@@ -102,18 +124,31 @@ class TaskAgent:
                 filtered_count = original_count - len(general_tasks)
                 print(f"[TASK AGENT] Removed {filtered_count} generic visa task(s) from LLM")
 
-            # Combine visa tasks with general tasks
-            all_tasks = visa_tasks + general_tasks
-            print(f"[TASK AGENT] ✓ Total tasks: {len(all_tasks)} ({len(visa_tasks)} visa + {len(general_tasks)} general)")
+            if vaccine_tasks:
+                # Remove generic health/vaccination tasks from LLM
+                print(f"[TASK AGENT] Filtering out generic health/vaccine tasks from LLM")
+                original_count = len(general_tasks)
+                general_tasks = [
+                    task for task in general_tasks
+                    if not (task.get("category", "").lower() == "health" and
+                           any(word in task.get("title", "").lower() for word in ["vaccine", "vaccination", "immunization"]))
+                ]
+                filtered_count = original_count - len(general_tasks)
+                print(f"[TASK AGENT] Removed {filtered_count} generic vaccine task(s) from LLM")
+
+            # Combine all specialized tasks with general tasks
+            all_tasks = visa_tasks + vaccine_tasks + general_tasks
+            print(f"[TASK AGENT] ✓ Total tasks: {len(all_tasks)} ({len(visa_tasks)} visa + {len(vaccine_tasks)} vaccine + {len(general_tasks)} general)")
             return all_tasks
 
         except Exception as e:
             print(f"Error generating tasks: {e}")
             fallback_tasks = self._get_fallback_tasks(trip_data)
 
-            # Add visa tasks to fallback if we have them
-            if visa_tasks:
-                return visa_tasks + fallback_tasks
+            # Add specialized tasks to fallback if we have them
+            specialized_tasks = visa_tasks + vaccine_tasks
+            if specialized_tasks:
+                return specialized_tasks + fallback_tasks
             return fallback_tasks
 
     def _get_system_prompt(self) -> str:
