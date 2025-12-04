@@ -61,6 +61,18 @@ async def _generate_tasks_async(
         trip_data = trip_response.data
         print(f"[TASKS] Fetched trip data for trip {trip_id}")
 
+        # Fetch user's citizenship for visa checking
+        user_citizenship = None
+        user_id = trip_data.get("user_id")
+        if user_id:
+            try:
+                user_response = supabase.table("users").select("citizenship").eq("id", user_id).single().execute()
+                if user_response.data:
+                    user_citizenship = user_response.data.get("citizenship")
+                    print(f"[TASKS] User citizenship: {user_citizenship}")
+            except Exception as e:
+                print(f"[TASKS] Could not fetch user citizenship: {e}")
+
         await job_service.update_job_status(
             job_id,
             status="processing",
@@ -70,7 +82,7 @@ async def _generate_tasks_async(
 
         # Generate tasks using the task agent
         agent = get_task_agent()
-        tasks = agent.generate_tasks(trip_data)
+        tasks = agent.generate_tasks(trip_data, user_citizenship)
         print(f"[TASKS] Generated {len(tasks)} tasks for trip {trip_id}")
 
         await job_service.update_job_status(

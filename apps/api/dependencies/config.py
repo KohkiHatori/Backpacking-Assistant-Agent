@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     # Google Gemini API
     gemini_api_key: str
 
+    # RapidAPI Configuration
+    rapidapi_secret: str
+
+    # Perplexity API (optional)
+    perplexity_api_key: str | None = None
+
     # FastAPI Configuration
     api_host: str = "0.0.0.0"
     api_port: int = 8000
@@ -28,7 +34,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=False
+        case_sensitive=False,
+        extra="ignore"  # Ignore extra fields in .env that aren't defined here
     )
 
 

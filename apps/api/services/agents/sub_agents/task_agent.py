@@ -1,9 +1,10 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import os
 import json
 import re
+from .visa_agent import get_visa_agent
 
 class TaskAgent:
     """
@@ -19,7 +20,11 @@ class TaskAgent:
             google_api_key=os.getenv("GEMINI_API_KEY")
         )
 
-    def generate_tasks(self, trip_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def generate_tasks(
+        self,
+        trip_data: Dict[str, Any],
+        user_citizenship: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Generate a list of tasks for the trip.
 
@@ -38,6 +43,7 @@ class TaskAgent:
                 - transportation: List of transportation modes
                 - budget: Budget amount
                 - currency: Currency code
+            user_citizenship: User's citizenship/passport country for visa checking
 
         Returns:
             List of task dictionaries, each containing:
@@ -48,6 +54,32 @@ class TaskAgent:
                 - due_date: Suggested due date relative to trip (optional)
                 - completed: Boolean (always False for new tasks)
         """
+        # First, get visa-specific tasks using the visa agent
+        visa_tasks = []
+        print(f"\n[TASK AGENT] Starting task generation for trip")
+        print(f"[TASK AGENT] User citizenship provided: {user_citizenship}")
+
+        if user_citizenship:
+            try:
+                print(f"[TASK AGENT] Initializing visa agent...")
+                visa_agent = get_visa_agent()
+                visa_tasks = visa_agent.generate_visa_tasks(trip_data, user_citizenship)
+                print(f"[TASK AGENT] ✓ Visa agent generated {len(visa_tasks)} visa-related tasks")
+
+                # Log task summaries
+                if visa_tasks:
+                    print(f"[TASK AGENT] Visa tasks created:")
+                    for i, task in enumerate(visa_tasks, 1):
+                        print(f"[TASK AGENT]   {i}. [{task.get('category')}] {task.get('title')}")
+            except Exception as e:
+                print(f"[TASK AGENT] ❌ Error calling visa agent: {e}")
+                import traceback
+                traceback.print_exc()
+                # Will fall back to LLM-generated visa tasks
+        else:
+            print(f"[TASK AGENT] ⚠️  No user citizenship provided, skipping visa agent")
+
+        # Generate general tasks using the LLM
         prompt = self._build_prompt(trip_data)
 
         try:
@@ -56,11 +88,33 @@ class TaskAgent:
                 HumanMessage(content=prompt)
             ]
             response = self.model.invoke(messages)
-            tasks = self._parse_task_response(response.content)
-            return tasks
+            general_tasks = self._parse_task_response(response.content)
+
+            # If we have visa tasks from the API, filter out generic visa tasks from LLM
+            if visa_tasks:
+                # Remove LLM-generated visa tasks since we have specific ones from API
+                print(f"[TASK AGENT] Filtering out generic visa tasks from LLM")
+                original_count = len(general_tasks)
+                general_tasks = [
+                    task for task in general_tasks
+                    if task.get("category", "").lower() != "visa"
+                ]
+                filtered_count = original_count - len(general_tasks)
+                print(f"[TASK AGENT] Removed {filtered_count} generic visa task(s) from LLM")
+
+            # Combine visa tasks with general tasks
+            all_tasks = visa_tasks + general_tasks
+            print(f"[TASK AGENT] ✓ Total tasks: {len(all_tasks)} ({len(visa_tasks)} visa + {len(general_tasks)} general)")
+            return all_tasks
+
         except Exception as e:
             print(f"Error generating tasks: {e}")
-            return self._get_fallback_tasks(trip_data)
+            fallback_tasks = self._get_fallback_tasks(trip_data)
+
+            # Add visa tasks to fallback if we have them
+            if visa_tasks:
+                return visa_tasks + fallback_tasks
+            return fallback_tasks
 
     def _get_system_prompt(self) -> str:
         """Get the system prompt for task generation."""
@@ -68,38 +122,40 @@ class TaskAgent:
 
 Your job is to generate a complete list of tasks that travelers need to complete before and during their trip.
 
+NOTE: Visa-related tasks are handled by a specialized agent, so DO NOT generate visa tasks. Focus on other categories.
+
 Task Categories:
 1. **General** - Universal tasks for any trip (e.g., "Book flights", "Get travel insurance")
-2. **Visa** - Visa and entry requirements for specific destinations
-3. **Accommodation** - Booking hotels, hostels, or other lodging
-4. **Transportation** - Local transportation bookings (trains, car rentals, etc.)
-5. **Health** - Vaccinations, medications, health insurance
-6. **Finance** - Currency exchange, notify bank, budget planning
-7. **Packing** - What to pack based on destinations and activities
-8. **Activities** - Pre-booking activities, tours, or attractions
-9. **Documentation** - Passport, copies of documents, emergency contacts
+2. **Accommodation** - Booking hotels, hostels, or other lodging
+3. **Transportation** - Local transportation bookings (trains, car rentals, etc.)
+4. **Health** - Vaccinations, medications, health insurance
+5. **Finance** - Currency exchange, notify bank, budget planning
+6. **Packing** - What to pack based on destinations and activities
+7. **Activities** - Pre-booking activities, tours, or attractions
+8. **Documentation** - Passport copies, emergency contacts, travel documents
 
 Guidelines:
-- Generate 10-20 tasks depending on trip complexity
+- Generate 10-15 tasks depending on trip complexity
 - Include both general and destination-specific tasks
-- Set appropriate priorities (high for critical tasks like visas, medium for bookings, low for nice-to-haves)
+- Set appropriate priorities (high for critical tasks, medium for bookings, low for nice-to-haves)
 - Consider the trip dates when setting priorities (urgent if trip is soon)
 - Make tasks actionable and specific
 - Include destination names in destination-specific tasks
+- DO NOT generate visa tasks (handled separately)
 
 Return ONLY a JSON array of task objects. Each task must have:
 - title (string, concise and actionable)
 - description (string, optional, more details if helpful)
-- category (string, one of: general, visa, accommodation, transportation, health, finance, packing, activities, documentation)
+- category (string, one of: general, accommodation, transportation, health, finance, packing, activities, documentation)
 - priority (string, one of: high, medium, low)
 - completed (boolean, always false)
 
 Example:
 [
   {
-    "title": "Apply for Japan visa",
-    "description": "Visit embassy website and submit visa application with required documents. Recommended: 4 weeks before trip",
-    "category": "visa",
+    "title": "Book flights to Tokyo",
+    "description": "Compare prices and book round-trip flights. Recommended: 4 weeks before trip",
+    "category": "transportation",
     "priority": "high",
     "completed": false
   },

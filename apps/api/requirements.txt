@@ -20,5 +20,6 @@ supabase==2.11.0
 # Environment and Configuration
 python-dotenv==1.0.1
 
-# Async HTTP client (already included with httpx in other deps)
+# HTTP clients
 httpx==0.28.1
+requests==2.32.3
