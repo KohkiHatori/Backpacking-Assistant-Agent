@@ -2,7 +2,6 @@
 
 import os
 import json
-import re
 from typing import List, Dict, Any, Optional
 from perplexity import Perplexity
 from datetime import datetime
@@ -149,91 +148,74 @@ class AccommodationAgent:
             range_type: Type of recommendations requested
 
         Returns:
-            Research results as text or None if API fails
+            Research results as JSON string or None if API fails
         """
-        # Build the research query based on range_type
-        if range_type == "all":
-            query = f"""I need 3 accommodation recommendations in {destination} with different price ranges:
-1. One BUDGET option (economical, hostel/guesthouse)
-2. One MID-RANGE option (comfortable hotel/aparthotel)
-3. One LUXURY option (upscale hotel/resort)
+        # Common JSON instruction ensuring strict format
+        json_instruction = f"""
+IMPORTANT: Return ONLY a raw JSON array. Do not use markdown code blocks. Do not add explanations.
+The output must be a valid JSON array of 3 objects with this exact schema:
+[
+  {{
+    "name": "Property Name",
+    "type": "hotel/hostel/resort/etc",
+    "price_per_night": 100,
+    "currency": "{currency}",
+    "location": "Neighborhood name",
+    "description": "Brief description...",
+    "why_fits": "Reasoning...",
+    "range_category": "budget/mid-range/luxury"
+  }}
+]
+"""
 
+        # Build the research query based on range_type
+        base_context = f"""
 Trip Details:
 - Destination: {destination}
-- Approximate budget per night: {budget_per_night:.0f} {currency}
+- Approx Budget per night: {budget_per_night:.0f} {currency}
 - Travelers: {adults_count} adult(s), {children_count} child(ren)
-- Travel date: {start_date if start_date else 'Upcoming'}
+- Date: {start_date if start_date else 'Upcoming'}
 - Preferences: {', '.join(preferences) if preferences else 'None specified'}
+"""
 
-For EACH of the 3 recommendations, provide:
-1. Property name
-2. Type (hotel/hostel/airbnb/guesthouse/resort)
-3. Price per night in {currency}
-4. Location/neighborhood within {destination}
-5. Brief description (1-2 sentences about amenities and atmosphere)
-6. Why it fits (explain what makes it a good budget/mid-range/luxury choice)
+        if range_type == "all":
+            query = f"""I need 3 accommodation recommendations in {destination}:
+1. One BUDGET option
+2. One MID-RANGE option
+3. One LUXURY option
 
-Please provide current, realistic prices in {currency} and focus on well-reviewed, bookable properties."""
+{base_context}
 
+For "budget", look for hostels or cheap hotels around {budget_per_night * 0.5:.0f} {currency}.
+For "mid-range", look for comfortable hotels around {budget_per_night:.0f} {currency}.
+For "luxury", look for high-end options above {budget_per_night * 1.5:.0f} {currency}.
+
+{json_instruction}
+"""
         elif range_type == "budget":
             query = f"""I need 3 BUDGET accommodation recommendations in {destination}.
+Focus on clean, safe, affordable options (hostels, guesthouses, budget hotels).
 
-Trip Details:
-- Destination: {destination}
-- Approximate budget per night: {budget_per_night:.0f} {currency}
-- Travelers: {adults_count} adult(s), {children_count} child(ren)
-- Travel date: {start_date if start_date else 'Upcoming'}
-- Preferences: {', '.join(preferences) if preferences else 'None specified'}
+{base_context}
 
-For EACH of the 3 budget recommendations, provide:
-1. Property name
-2. Type (hostel/guesthouse/budget hotel)
-3. Price per night in {currency}
-4. Location/neighborhood
-5. Brief description
-6. Why it's a good value option
-
-Focus on clean, safe, budget-friendly options with good reviews."""
-
+{json_instruction}
+"""
         elif range_type == "mid-range":
             query = f"""I need 3 MID-RANGE accommodation recommendations in {destination}.
+Focus on good value, comfort, and location.
 
-Trip Details:
-- Destination: {destination}
-- Approximate budget per night: {budget_per_night:.0f} {currency}
-- Travelers: {adults_count} adult(s), {children_count} child(ren)
-- Travel date: {start_date if start_date else 'Upcoming'}
-- Preferences: {', '.join(preferences) if preferences else 'None specified'}
+{base_context}
 
-For EACH of the 3 mid-range recommendations, provide:
-1. Property name
-2. Type (hotel/aparthotel/boutique hotel)
-3. Price per night in {currency}
-4. Location/neighborhood
-5. Brief description
-6. Why it's a good value for money
-
-Focus on comfortable, well-located properties with good amenities."""
-
+{json_instruction}
+"""
         else:  # luxury
             query = f"""I need 3 LUXURY accommodation recommendations in {destination}.
+Focus on 5-star properties, resorts, and premium amenities.
 
-Trip Details:
-- Destination: {destination}
-- Approximate budget per night: {budget_per_night:.0f} {currency}
-- Travelers: {adults_count} adult(s), {children_count} child(ren)
-- Travel date: {start_date if start_date else 'Upcoming'}
-- Preferences: {', '.join(preferences) if preferences else 'None specified'}
+{base_context}
 
-For EACH of the 3 luxury recommendations, provide:
-1. Property name
-2. Type (5-star hotel/resort/luxury boutique)
-3. Price per night in {currency}
-4. Location/neighborhood
-5. Brief description
-6. Why it's exceptional
-
-Focus on high-end properties with premium amenities and service."""
+{json_instruction}
+"""
 
         try:
             print(f"[ACCOMMODATION AGENT]   📡 Querying Perplexity (model: sonar)...")
@@ -273,7 +255,7 @@ Focus on high-end properties with premium amenities and service."""
         range_type: str
     ) -> List[Dict[str, Any]]:
         """
-        Parse Perplexity research results and create recommendation objects.
+        Parse Perplexity JSON research results and create recommendation objects.
 
         Args:
             research_text: Research results from Perplexity
@@ -287,70 +269,96 @@ Focus on high-end properties with premium amenities and service."""
             List of accommodation recommendation dictionaries
         """
         recommendations = []
-
-        # Try to intelligently parse the response
-        # The response should contain 3 recommendations
-
-        # Split by common delimiters that might separate recommendations
-        sections = re.split(r'\n\s*\n|\n(?=\d+\.|#{1,3}\s)', research_text)
-
         parsed_items = []
 
-        for section in sections:
-            section = section.strip()
-            if not section or len(section) < 50:
+        try:
+            # Clean up the response text to ensure it's valid JSON
+            # Remove markdown code blocks if present
+            clean_text = research_text.strip()
+            if clean_text.startswith("```json"):
+                clean_text = clean_text[7:]
+            elif clean_text.startswith("```"):
+                clean_text = clean_text[3:]
+            if clean_text.endswith("```"):
+                clean_text = clean_text[:-3]
+
+            clean_text = clean_text.strip()
+
+            # Parse JSON
+            parsed_items = json.loads(clean_text)
+
+            if not isinstance(parsed_items, list):
+                print(f"[ACCOMMODATION AGENT]   ⚠️  Parsed JSON is not a list: {type(parsed_items)}")
+                parsed_items = []
+
+        except json.JSONDecodeError as e:
+            print(f"[ACCOMMODATION AGENT]   ⚠️  JSON decode error: {e}")
+            print(f"[ACCOMMODATION AGENT]   Raw text start: {research_text[:100]}...")
+            # Attempt to extract JSON array from text if it's embedded
+            try:
+                start_idx = research_text.find('[')
+                end_idx = research_text.rfind(']')
+                if start_idx != -1 and end_idx != -1:
+                    json_str = research_text[start_idx:end_idx+1]
+                    parsed_items = json.loads(json_str)
+            except Exception as e2:
+                print(f"[ACCOMMODATION AGENT]   ❌ Failed to extract JSON from text: {e2}")
+
+        # Validation and processing
+        valid_items = []
+        for item in parsed_items:
+            if not isinstance(item, dict):
                 continue
 
-            # Try to extract accommodation details from this section
-            item = self._extract_accommodation_from_text(section, currency)
-            if item:
-                parsed_items.append(item)
+            # Ensure required fields
+            if "name" not in item:
+                continue
 
-        # If we successfully parsed items, use them
-        if len(parsed_items) >= 3:
-            parsed_items = parsed_items[:3]  # Take first 3
-        elif len(parsed_items) > 0:
-            # Pad with fallback if we got some but not enough
-            while len(parsed_items) < 3:
-                parsed_items.append(self._create_fallback_recommendation(
+            # Normalize price
+            try:
+                price = float(item.get("price_per_night", 0))
+            except (ValueError, TypeError):
+                price = 0
+
+            item["price_per_night"] = price
+
+            # Ensure range category
+            if "range_category" not in item or item["range_category"] not in ["budget", "mid-range", "luxury"]:
+                item["range_category"] = self._determine_range_category(
+                    price, budget_per_night, range_type
+                )
+
+            valid_items.append(item)
+
+        # Fallbacks if needed
+        if len(valid_items) < 3:
+            print(f"[ACCOMMODATION AGENT]   ⚠️  Got {len(valid_items)} valid items, adding fallbacks")
+            while len(valid_items) < 3:
+                valid_items.append(self._create_fallback_recommendation(
                     destination,
-                    len(parsed_items) + 1,
+                    len(valid_items) + 1,
                     budget_per_night,
                     currency,
                     range_type
                 ))
-        else:
-            # Create fallback recommendations
-            print("[ACCOMMODATION AGENT]   ⚠️  Could not parse recommendations, using fallback")
-            for i in range(3):
-                parsed_items.append(self._create_fallback_recommendation(
-                    destination,
-                    i + 1,
-                    budget_per_night,
-                    currency,
-                    range_type
-                ))
 
-        # Convert parsed items to recommendation format
-        for i, item in enumerate(parsed_items):
-            total_cost = item.get("price_per_night", 0) * nights_count
+        # Create final recommendation objects
+        for i, item in enumerate(valid_items[:3]):
+            price = item.get("price_per_night", 0)
+            total_cost = price * nights_count
 
             recommendation = {
                 "destination": destination,
-                "name": item.get("name", f"Accommodation Option {i + 1}"),
+                "name": item.get("name", f"Option {i+1}"),
                 "type": item.get("type", "hotel"),
-                "price_per_night": item.get("price_per_night", 0),
-                "currency": currency,
+                "price_per_night": price,
+                "currency": currency,  # Force the requested currency
                 "total_cost": total_cost,
                 "nights_count": nights_count,
                 "location": item.get("location", destination),
                 "description": item.get("description", ""),
                 "why_fits": item.get("why_fits", ""),
-                "range_category": item.get("range_category", self._determine_range_category(
-                    item.get("price_per_night", 0),
-                    budget_per_night,
-                    range_type
-                ))
+                "range_category": item.get("range_category", "mid-range")
             }
 
             recommendations.append(recommendation)
@@ -360,122 +368,6 @@ Focus on high-end properties with premium amenities and service."""
             print(f"[ACCOMMODATION AGENT]      Price: {recommendation['price_per_night']} {currency}/night (Total: {total_cost} {currency})")
 
         return recommendations
-
-    def _extract_accommodation_from_text(self, text: str, currency: str) -> Optional[Dict[str, Any]]:
-        """
-        Extract accommodation details from a text section.
-
-        Args:
-            text: Text section containing accommodation info
-            currency: Currency code
-
-        Returns:
-            Dictionary with accommodation details or None
-        """
-        item = {}
-
-        # Extract name (often at the start or after numbering)
-        name_patterns = [
-            r'(?:^|\d+\.\s*)\*\*([^*\n]+)\*\*',  # **Name**
-            r'(?:^|\d+\.\s*)([A-Z][A-Za-z\s&\'-]+(?:Hotel|Hostel|Resort|Inn|Lodge|Guesthouse|Aparthotel))',
-            r'^(?:\d+\.\s*)?([A-Z][^.\n]{10,60})',  # First capitalized phrase
-        ]
-
-        for pattern in name_patterns:
-            match = re.search(pattern, text, re.MULTILINE)
-            if match:
-                item["name"] = match.group(1).strip()
-                break
-
-        # Extract type
-        type_keywords = {
-            "hostel": "hostel",
-            "hotel": "hotel",
-            "resort": "resort",
-            "guesthouse": "guesthouse",
-            "airbnb": "airbnb",
-            "aparthotel": "aparthotel",
-            "boutique": "boutique hotel",
-            "inn": "inn",
-            "lodge": "lodge"
-        }
-
-        text_lower = text.lower()
-        for keyword, type_name in type_keywords.items():
-            if keyword in text_lower:
-                item["type"] = type_name
-                break
-
-        # Extract price (look for currency symbol or code with numbers)
-        price_patterns = [
-            rf'{currency}\s*(\d+(?:,\d{{3}})*(?:\.\d{{2}})?)',  # USD 100
-            rf'\$\s*(\d+(?:,\d{{3}})*(?:\.\d{{2}})?)',  # $100
-            rf'(\d+(?:,\d{{3}})*(?:\.\d{{2}})?)\s*{currency}',  # 100 USD
-            r'(?:Price|Cost|Rate)[:\s]+\$?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)',  # Price: 100
-            r'\$(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:per|/)\s*night',  # $100 per night
-        ]
-
-        for pattern in price_patterns:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                price_str = match.group(1).replace(',', '')
-                try:
-                    item["price_per_night"] = int(float(price_str))
-                    break
-                except ValueError:
-                    continue
-
-        # Extract location/neighborhood
-        location_patterns = [
-            r'(?:Location|Neighborhood|Area)[:\s]+([A-Z][^.\n]{5,50})',
-            r'(?:in|near|at)\s+([A-Z][A-Za-z\s]{5,30}(?:District|Area|Neighborhood|Quarter|Ward))',
-        ]
-
-        for pattern in location_patterns:
-            match = re.search(pattern, text)
-            if match:
-                item["location"] = match.group(1).strip()
-                break
-
-        # Extract description (get a sentence or two)
-        sentences = re.split(r'[.!?]\s+', text)
-        description_parts = []
-        for sentence in sentences:
-            if len(sentence) > 30 and not re.match(r'^\d+\.', sentence.strip()):
-                description_parts.append(sentence.strip())
-                if len(description_parts) == 2:
-                    break
-
-        if description_parts:
-            item["description"] = '. '.join(description_parts)
-            if not item["description"].endswith('.'):
-                item["description"] += '.'
-
-        # Extract "why it fits" reasoning
-        why_patterns = [
-            r'(?:Why it fits|Why it\'s|Fits because|Good for)[:\s]+([^.\n]{20,200})',
-            r'(?:This|It)\s+(?:is|offers|provides)[^.]{20,150}',
-        ]
-
-        for pattern in why_patterns:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                item["why_fits"] = match.group(1).strip() if match.lastindex else match.group(0).strip()
-                break
-
-        # Determine range category from text
-        if "budget" in text_lower or "economical" in text_lower or "affordable" in text_lower:
-            item["range_category"] = "budget"
-        elif "luxury" in text_lower or "upscale" in text_lower or "5-star" in text_lower or "premium" in text_lower:
-            item["range_category"] = "luxury"
-        elif "mid-range" in text_lower or "mid range" in text_lower or "comfortable" in text_lower:
-            item["range_category"] = "mid-range"
-
-        # Only return if we at least got a name or type
-        if "name" in item or "type" in item:
-            return item
-
-        return None
 
     def _determine_range_category(
         self,
