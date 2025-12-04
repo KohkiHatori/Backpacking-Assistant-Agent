@@ -174,13 +174,16 @@ Return the itinerary as a JSON array of items, where each item has:
   "order_index": 0
 }
 
-Be specific and practical. Include estimated costs in the local currency."""
+CRITICAL: All costs MUST be provided in the user's specified currency. Do NOT use local currency.
+Convert all estimated costs to the user's currency before including them in the itinerary.
+Be specific and practical with realistic cost estimates."""
 
     def _build_generation_prompt(self, trip_data: Dict[str, Any], num_days: int) -> str:
         """Build the prompt for initial itinerary generation."""
         destinations = ", ".join(trip_data.get("destinations", []))
         preferences = ", ".join(trip_data.get("preferences", []))
         transportation = ", ".join(trip_data.get("transportation", []))
+        currency = trip_data.get("currency", "USD")
 
         return f"""Create a detailed {num_days}-day itinerary for the following trip:
 
@@ -190,7 +193,8 @@ Be specific and practical. Include estimated costs in the local currency."""
 - End Point: {trip_data.get("end_point", "Not specified")}
 - Dates: {trip_data.get("start_date")} to {trip_data.get("end_date")}
 - Travelers: {trip_data.get("adults_count", 1)} adults, {trip_data.get("children_count", 0)} children
-- Budget: {trip_data.get("budget")} {trip_data.get("currency")}
+- Budget: {trip_data.get("budget")} {currency}
+- User's Currency: {currency}
 - Preferences: {preferences or "None specified"}
 - Transportation: {transportation or "Not specified"}
 
@@ -204,6 +208,10 @@ Be specific and practical. Include estimated costs in the local currency."""
 7. Stay within the budget
 8. Match the preferences and travel style
 
+**IMPORTANT - Currency Requirement:**
+ALL costs in the itinerary MUST be in {currency}. Convert all estimated costs from local currencies to {currency}.
+Do NOT provide costs in local destination currencies - only use {currency}.
+
 Return ONLY a JSON array of itinerary items, no other text."""
 
     def _build_modification_prompt(
@@ -214,6 +222,7 @@ Return ONLY a JSON array of itinerary items, no other text."""
     ) -> str:
         """Build the prompt for modifying existing itinerary."""
         existing_json = json.dumps(existing_items, indent=2)
+        currency = trip_data.get("currency", "USD")
 
         return f"""Modify the following itinerary based on the user's request.
 
@@ -226,7 +235,8 @@ Return ONLY a JSON array of itinerary items, no other text."""
 {modification}
 
 **Trip Context:**
-- Budget: {trip_data.get("budget")} {trip_data.get("currency")}
+- Budget: {trip_data.get("budget")} {currency}
+- User's Currency: {currency}
 - Preferences: {", ".join(trip_data.get("preferences", []))}
 - Travelers: {trip_data.get("adults_count", 1)} adults, {trip_data.get("children_count", 0)} children
 
@@ -236,6 +246,10 @@ Return ONLY a JSON array of itinerary items, no other text."""
 3. Adjust subsequent days if needed
 4. Maintain realistic timing and transitions
 5. Stay within budget constraints
+
+**IMPORTANT - Currency Requirement:**
+ALL costs in the modified itinerary MUST be in {currency}. Convert all estimated costs to {currency}.
+Do NOT use local destination currencies - only use {currency}.
 
 Return ONLY the complete modified JSON array, no other text."""
 
@@ -260,8 +274,27 @@ Return ONLY the complete modified JSON array, no other text."""
             # Validate and enhance items
             validated_items = []
             for idx, item in enumerate(items):
+                # Ensure integer types
+                day_number = item.get("day_number", 1)
+                try:
+                    day_number = int(float(day_number))
+                except (ValueError, TypeError):
+                    day_number = 1
+
+                cost = item.get("cost", 0)
+                try:
+                    cost = int(float(cost))
+                except (ValueError, TypeError):
+                    cost = 0
+
+                order_index = item.get("order_index", idx)
+                try:
+                    order_index = int(float(order_index))
+                except (ValueError, TypeError):
+                    order_index = idx
+
                 validated_item = {
-                    "day_number": item.get("day_number", 1),
+                    "day_number": day_number,
                     "date": item.get("date", trip_data.get("start_date")),
                     "start_time": item.get("start_time", "09:00:00"),
                     "end_time": item.get("end_time", "10:00:00"),
@@ -269,8 +302,8 @@ Return ONLY the complete modified JSON array, no other text."""
                     "description": item.get("description", ""),
                     "location": item.get("location", ""),
                     "type": item.get("type", "activity"),
-                    "cost": item.get("cost", 0),
-                    "order_index": item.get("order_index", idx)
+                    "cost": cost,
+                    "order_index": order_index
                 }
                 validated_items.append(validated_item)
 
@@ -341,6 +374,8 @@ Return ONLY the complete modified JSON array, no other text."""
         previous_days_summary: Optional[str]
     ) -> str:
         """Build prompt for generating a single day's itinerary."""
+        currency = trip_data.get('currency', 'USD')
+
         context = f"""Generate a detailed itinerary for DAY {day_number} of this trip:
 
 **Trip Overview:**
@@ -348,7 +383,8 @@ Return ONLY the complete modified JSON array, no other text."""
 - Date for Day {day_number}: {date}
 - Travelers: {trip_data.get('adults_count', 1)} adults, {trip_data.get('children_count', 0)} children
 - Preferences: {', '.join(trip_data.get('preferences', []))}
-- Budget: {trip_data.get('budget', 0)} {trip_data.get('currency', 'USD')} total
+- Budget: {trip_data.get('budget', 0)} {currency} total
+- User's Currency: {currency}
 - Transportation: {', '.join(trip_data.get('transportation', []))}
 """
 
@@ -370,7 +406,11 @@ Return as JSON array with objects containing:
 - description: Detailed description
 - location: Place name
 - type: "activity", "meal", "transport", or "accommodation"
-- cost: Estimated cost in cents (0 if unknown)
+- cost: Estimated cost (numeric value, will be stored as amount in {currency})
+
+**CRITICAL - Currency Requirement:**
+ALL costs MUST be in {currency}. Convert all estimated costs from local currencies to {currency}.
+Do NOT provide costs in local destination currencies - only use {currency}.
 
 Make it realistic, engaging, and respect the budget/preferences.
 """
@@ -396,11 +436,20 @@ Make it realistic, engaging, and respect the budget/preferences.
             # Parse JSON
             items = json.loads(cleaned_text)
 
-            # Add day_number, date, and order_index
+            # Add day_number, date, and order_index with proper type conversion
             for i, item in enumerate(items):
-                item['day_number'] = day_number
+                item['day_number'] = int(day_number)
                 item['date'] = date
-                item['order_index'] = i
+                item['order_index'] = int(i)
+
+                # Ensure cost is an integer (convert from float/string if needed)
+                if 'cost' in item:
+                    try:
+                        item['cost'] = int(float(item['cost']))
+                    except (ValueError, TypeError):
+                        item['cost'] = 0
+                else:
+                    item['cost'] = 0
 
             return items
 

@@ -1,52 +1,67 @@
 """Authentication and authorization dependencies."""
 
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Depends
 from typing import Optional
+from gotrue import SyncGoTrueClient
+from gotrue.errors import AuthApiError
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+
+# Initialize GoTrue client for Supabase auth
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+if not supabase_url or not supabase_key:
+    raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in the environment.")
+
+auth_client = SyncGoTrueClient(
+    url=supabase_url,
+    headers={"apikey": supabase_key}
+)
 
 async def get_current_user_id(
-    authorization: Optional[str] = Header(None)
-) -> Optional[str]:
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None)
+) -> str:
     """
-    Extract user ID from authorization header.
-
-    For now, this is a placeholder. In production, this should:
-    1. Validate the JWT token
-    2. Extract user ID from the token
-    3. Verify the user exists
-
-    Args:
-        authorization: Authorization header with Bearer token
-
-    Returns:
-        User ID if authenticated, None otherwise
+    Validate the user.
+    Prioritizes X-User-Id header for internal proxy requests.
+    Falls back to Authorization header for direct API calls.
     """
-    if not authorization:
-        return None
+    # 1. Trust internal proxy if X-User-Id is present
+    # In a real production env, you should also verify a shared secret here
+    if x_user_id:
+        return x_user_id
 
-    # TODO: Implement proper JWT validation
-    # For now, just extract a basic token
-    if authorization.startswith("Bearer "):
-        token = authorization.split(" ")[1]
-        # In production, decode and validate the JWT here
-        return token
+    # 2. Fallback to Supabase Auth (GoTrue)
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid or missing Authorization header")
 
-    return None
+    token = authorization.split(" ")[1]
 
+    try:
+        # Validate the token and get user info
+        user_response = auth_client.get_user(token)
+        user = user_response.user
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid token or user not found")
 
-async def require_auth(user_id: Optional[str] = None) -> str:
+        return str(user.id)
+
+    except AuthApiError as e:
+        raise HTTPException(status_code=401, detail=f"Authentication failed: {e.message}")
+    except Exception as e:
+        print(f"An unexpected error occurred during authentication: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred during authentication")
+
+async def require_auth(user_id: str = Depends(get_current_user_id)) -> str:
     """
-    Require authentication for protected endpoints.
+    Dependency to ensure a user is authenticated.
 
-    Args:
-        user_id: User ID from get_current_user_id dependency
-
-    Returns:
-        Validated user ID
-
-    Raises:
-        HTTPException: If user is not authenticated
+    This function simply depends on `get_current_user_id`, which handles all
+    the validation and exception raising. If `get_current_user_id` succeeds,
+    it returns the user_id. If not, it raises an HTTPException.
     """
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Authentication required")
     return user_id

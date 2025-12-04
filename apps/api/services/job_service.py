@@ -148,9 +148,22 @@ class JobService:
             # Prepare items for insertion
             db_items = []
             for item in items:
+                # Ensure integer types for day_number, cost, and order_index
+                day_number = item.get("day_number")
+                if day_number is not None:
+                    day_number = int(float(day_number))  # Handle both string and float
+
+                cost = item.get("cost", 0)
+                if cost is not None:
+                    cost = int(float(cost))  # Handle both string and float
+
+                order_index = item.get("order_index", 0)
+                if order_index is not None:
+                    order_index = int(float(order_index))  # Handle both string and float
+
                 db_item = {
                     "trip_id": trip_id,
-                    "day_number": item.get("day_number"),
+                    "day_number": day_number,
                     "date": item.get("date"),
                     "start_time": item.get("start_time"),
                     "end_time": item.get("end_time"),
@@ -158,8 +171,8 @@ class JobService:
                     "description": item.get("description"),
                     "location": item.get("location"),
                     "type": item.get("type"),
-                    "cost": item.get("cost", 0),
-                    "order_index": item.get("order_index", 0)
+                    "cost": cost,
+                    "order_index": order_index
                 }
                 db_items.append(db_item)
 

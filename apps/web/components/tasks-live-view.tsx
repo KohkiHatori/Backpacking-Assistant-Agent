@@ -16,12 +16,15 @@ import {
   AlertTitle,
   LinearProgress,
   Divider,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import { Assignment, CheckCircle, Error as ErrorIcon, Map as MapIcon } from "@mui/icons-material";
+import { Assignment, CheckCircle, Error as ErrorIcon, Map as MapIcon, AutoAwesome } from "@mui/icons-material";
 import { useTaskGeneration } from "@/hooks/useTaskGeneration";
 import { toggleTaskCompletion } from "@/app/trip/[id]/task-actions";
 import { useTransition, useState, useEffect } from "react";
+import AccommodationRecommendationsModal from "./accommodation-recommendations-modal";
 
 interface Task {
   id: string;
@@ -52,6 +55,11 @@ export default function TasksLiveView({ tripId }: TasksLiveViewProps) {
   const queryClient = useQueryClient();
   const [isPending, startTransition] = useTransition();
   const [jobId, setJobId] = useState<string | null>(null);
+  const [accommodationModalOpen, setAccommodationModalOpen] = useState(false);
+  const [selectedAccommodationTask, setSelectedAccommodationTask] = useState<{
+    destination: string;
+    nightsCount: number;
+  } | null>(null);
 
   // Check if generation is in progress (only on client side)
   useEffect(() => {
@@ -141,6 +149,23 @@ export default function TasksLiveView({ tripId }: TasksLiveViewProps) {
         queryClient.invalidateQueries({ queryKey: ["tasks", tripId] });
       }
     });
+  };
+
+  const handleAccommodationAI = (task: Task) => {
+    // Extract destination from task title (e.g., "Book accommodation in Tokyo")
+    const match = task.title.match(/accommodation in (.+?)(?:\s|$)/i);
+    const destination = match && match[1] ? match[1].trim() : "Unknown";
+
+    // Default to 3 nights if we can't determine from task
+    const nightsCount = 3;
+
+    setSelectedAccommodationTask({ destination, nightsCount });
+    setAccommodationModalOpen(true);
+  };
+
+  const handleCloseAccommodationModal = () => {
+    setAccommodationModalOpen(false);
+    setSelectedAccommodationTask(null);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -250,6 +275,78 @@ export default function TasksLiveView({ tripId }: TasksLiveViewProps) {
     return { high, medium, low };
   };
 
+  // Helper to render task item with optional AI button
+  const renderTaskItem = (task: Task) => {
+    const isAccommodation = task.category === "accommodation";
+
+    return (
+      <ListItem
+        key={task.id}
+        disablePadding
+        secondaryAction={
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {isAccommodation && (
+              <Tooltip title="AI Recommendations">
+                <IconButton
+                  size="small"
+                  onClick={() => handleAccommodationAI(task)}
+                  sx={{
+                    bgcolor: 'primary.light',
+                    color: 'primary.contrastText',
+                    '&:hover': {
+                      bgcolor: 'primary.main',
+                    },
+                  }}
+                >
+                  <AutoAwesome fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+            <Checkbox
+              edge="end"
+              checked={task.is_completed}
+              onChange={() => handleToggleTask(task.id, task.is_completed)}
+              disabled={isPending}
+              tabIndex={-1}
+            />
+          </Box>
+        }
+        sx={{
+          mb: 1,
+          pl: 2,
+          pr: isAccommodation ? 12 : 7, // More space if AI button is present
+          py: 1,
+          borderRadius: 1,
+          bgcolor: task.is_completed ? "rgba(76, 175, 80, 0.08)" : "transparent",
+          border: "1px solid",
+          borderColor: task.is_completed ? "rgba(76, 175, 80, 0.3)" : "divider",
+          "&:hover": {
+            bgcolor: task.is_completed
+              ? "rgba(76, 175, 80, 0.12)"
+              : "rgba(0, 0, 0, 0.04)",
+          },
+        }}
+      >
+        <ListItemText
+          primary={
+            <Typography
+              variant="body2"
+              sx={{
+                textDecoration: task.is_completed ? "line-through" : "none",
+                color: task.is_completed ? "text.secondary" : "text.primary",
+                pr: 1,
+              }}
+            >
+              {task.title}
+            </Typography>
+          }
+          secondary={task.description}
+          sx={{ pr: 1 }}
+        />
+      </ListItem>
+    );
+  };
+
   // Render task list grouped by priority
   const renderTaskList = (taskList: Task[]) => {
     if (taskList.length === 0) {
@@ -280,53 +377,7 @@ export default function TasksLiveView({ tripId }: TasksLiveViewProps) {
               High Priority
             </Typography>
             <List disablePadding>
-              {high.map((task) => (
-                <ListItem
-                  key={task.id}
-                  disablePadding
-                  secondaryAction={
-                    <Checkbox
-                      edge="end"
-                      checked={task.is_completed}
-                      onChange={() => handleToggleTask(task.id, task.is_completed)}
-                      disabled={isPending}
-                      tabIndex={-1}
-                    />
-                  }
-                  sx={{
-                    mb: 1,
-                    pl: 2,
-                    pr: 7, // Add space for checkbox on the right
-                    py: 1,
-                    borderRadius: 1,
-                    bgcolor: task.is_completed ? "rgba(76, 175, 80, 0.08)" : "transparent",
-                    border: "1px solid",
-                    borderColor: task.is_completed ? "rgba(76, 175, 80, 0.3)" : "divider",
-                    "&:hover": {
-                      bgcolor: task.is_completed
-                        ? "rgba(76, 175, 80, 0.12)"
-                        : "rgba(0, 0, 0, 0.04)",
-                    },
-                  }}
-                >
-                  <ListItemText
-                    primary={
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          textDecoration: task.is_completed ? "line-through" : "none",
-                          color: task.is_completed ? "text.secondary" : "text.primary",
-                          pr: 1, // Extra padding to prevent text overlap
-                        }}
-                      >
-                        {task.title}
-                      </Typography>
-                    }
-                    secondary={task.description}
-                    sx={{ pr: 1 }} // Ensure secondary text also has padding
-                  />
-                </ListItem>
-              ))}
+              {high.map((task) => renderTaskItem(task))}
             </List>
           </Box>
         )}
@@ -347,53 +398,7 @@ export default function TasksLiveView({ tripId }: TasksLiveViewProps) {
               Medium Priority
             </Typography>
             <List disablePadding>
-              {medium.map((task) => (
-                <ListItem
-                  key={task.id}
-                  disablePadding
-                  secondaryAction={
-                    <Checkbox
-                      edge="end"
-                      checked={task.is_completed}
-                      onChange={() => handleToggleTask(task.id, task.is_completed)}
-                      disabled={isPending}
-                      tabIndex={-1}
-                    />
-                  }
-                  sx={{
-                    mb: 1,
-                    pl: 2,
-                    pr: 7, // Add space for checkbox on the right
-                    py: 1,
-                    borderRadius: 1,
-                    bgcolor: task.is_completed ? "rgba(76, 175, 80, 0.08)" : "transparent",
-                    border: "1px solid",
-                    borderColor: task.is_completed ? "rgba(76, 175, 80, 0.3)" : "divider",
-                    "&:hover": {
-                      bgcolor: task.is_completed
-                        ? "rgba(76, 175, 80, 0.12)"
-                        : "rgba(0, 0, 0, 0.04)",
-                    },
-                  }}
-                >
-                  <ListItemText
-                    primary={
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          textDecoration: task.is_completed ? "line-through" : "none",
-                          color: task.is_completed ? "text.secondary" : "text.primary",
-                          pr: 1, // Extra padding to prevent text overlap
-                        }}
-                      >
-                        {task.title}
-                      </Typography>
-                    }
-                    secondary={task.description}
-                    sx={{ pr: 1 }} // Ensure secondary text also has padding
-                  />
-                </ListItem>
-              ))}
+              {medium.map((task) => renderTaskItem(task))}
             </List>
           </Box>
         )}
@@ -414,53 +419,7 @@ export default function TasksLiveView({ tripId }: TasksLiveViewProps) {
               Low Priority
             </Typography>
             <List disablePadding>
-              {low.map((task) => (
-                <ListItem
-                  key={task.id}
-                  disablePadding
-                  secondaryAction={
-                    <Checkbox
-                      edge="end"
-                      checked={task.is_completed}
-                      onChange={() => handleToggleTask(task.id, task.is_completed)}
-                      disabled={isPending}
-                      tabIndex={-1}
-                    />
-                  }
-                  sx={{
-                    mb: 1,
-                    pl: 2,
-                    pr: 7, // Add space for checkbox on the right
-                    py: 1,
-                    borderRadius: 1,
-                    bgcolor: task.is_completed ? "rgba(76, 175, 80, 0.08)" : "transparent",
-                    border: "1px solid",
-                    borderColor: task.is_completed ? "rgba(76, 175, 80, 0.3)" : "divider",
-                    "&:hover": {
-                      bgcolor: task.is_completed
-                        ? "rgba(76, 175, 80, 0.12)"
-                        : "rgba(0, 0, 0, 0.04)",
-                    },
-                  }}
-                >
-                  <ListItemText
-                    primary={
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          textDecoration: task.is_completed ? "line-through" : "none",
-                          color: task.is_completed ? "text.secondary" : "text.primary",
-                          pr: 1, // Extra padding to prevent text overlap
-                        }}
-                      >
-                        {task.title}
-                      </Typography>
-                    }
-                    secondary={task.description}
-                    sx={{ pr: 1 }} // Ensure secondary text also has padding
-                  />
-                </ListItem>
-              ))}
+              {low.map((task) => renderTaskItem(task))}
             </List>
           </Box>
         )}
@@ -474,7 +433,7 @@ export default function TasksLiveView({ tripId }: TasksLiveViewProps) {
       {/* Progress Section */}
       <Paper sx={{ p: 3, mb: 4 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-          <Typography variant="h6">Trip Progress</Typography>
+          <Typography variant="h6">Task Progress</Typography>
           <Typography variant="h6" color="primary">
             {completedCount}/{totalCount}
           </Typography>
@@ -512,6 +471,17 @@ export default function TasksLiveView({ tripId }: TasksLiveViewProps) {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Accommodation Recommendations Modal */}
+      {selectedAccommodationTask && (
+        <AccommodationRecommendationsModal
+          open={accommodationModalOpen}
+          onClose={handleCloseAccommodationModal}
+          tripId={tripId}
+          destination={selectedAccommodationTask.destination}
+          nightsCount={selectedAccommodationTask.nightsCount}
+        />
+      )}
     </>
   );
 }

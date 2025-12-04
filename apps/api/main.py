@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from routers import agents, itinerary, tasks
+from routers import agents, itinerary, tasks, accommodations
 from dependencies.config import get_settings
 
 # Load environment variables
@@ -69,6 +69,7 @@ app.add_middleware(
 app.include_router(agents.router)
 app.include_router(itinerary.router)
 app.include_router(tasks.router)
+app.include_router(accommodations.router)
 
 
 @app.get("/")

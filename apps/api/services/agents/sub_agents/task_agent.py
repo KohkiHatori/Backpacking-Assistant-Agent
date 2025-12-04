@@ -157,47 +157,77 @@ class TaskAgent:
 
 Your job is to generate a complete list of tasks that travelers need to complete before and during their trip.
 
-NOTE: Visa-related tasks are handled by a specialized agent, so DO NOT generate visa tasks. Focus on other categories.
+NOTE: Visa-related tasks and vaccination tasks are handled by specialized agents, so DO NOT generate visa or vaccination tasks. Focus on other categories.
 
 Task Categories:
-1. **General** - Universal tasks for any trip (e.g., "Book flights", "Get travel insurance")
-2. **Accommodation** - Booking hotels, hostels, or other lodging
-3. **Transportation** - Local transportation bookings (trains, car rentals, etc.)
-4. **Health** - Vaccinations, medications, health insurance
+1. **General** - Universal tasks for any trip (e.g., "Book international flights", "Get travel insurance")
+2. **Accommodation** - Booking hotels, hostels, or other lodging (MUST include destination name)
+3. **Transportation** - Local transportation bookings: trains, buses, car rentals, etc. (MUST include destination name)
+4. **Health** - Travel health insurance, prescription medications, first aid kit (NOT vaccinations)
 5. **Finance** - Currency exchange, notify bank, budget planning
 6. **Packing** - What to pack based on destinations and activities
-7. **Activities** - Pre-booking activities, tours, or attractions
+7. **Activities** - Pre-booking activities, tours, or attractions (MUST include destination name)
 8. **Documentation** - Passport copies, emergency contacts, travel documents
 
-Guidelines:
+CRITICAL GUIDELINES:
 - Generate 10-15 tasks depending on trip complexity
-- Include both general and destination-specific tasks
+- MUST generate at least one accommodation task PER DESTINATION with the destination name in the title
+- MUST generate transportation tasks between destinations with specific locations
+- MUST generate activity/attraction tasks for major destinations with destination names
+- For accommodation, transportation, and activities categories: ALWAYS include the specific destination name in the task title
 - Set appropriate priorities (high for critical tasks, medium for bookings, low for nice-to-haves)
-- Consider the trip dates when setting priorities (urgent if trip is soon)
 - Make tasks actionable and specific
-- Include destination names in destination-specific tasks
-- DO NOT generate visa tasks (handled separately)
+- DO NOT generate visa tasks (handled by specialized agent)
+- DO NOT generate vaccination tasks (handled by specialized agent)
 
 Return ONLY a JSON array of task objects. Each task must have:
-- title (string, concise and actionable)
+- title (string, concise and actionable, WITH destination name for accommodation/transportation/activities)
 - description (string, optional, more details if helpful)
 - category (string, one of: general, accommodation, transportation, health, finance, packing, activities, documentation)
 - priority (string, one of: high, medium, low)
 - completed (boolean, always false)
 
-Example:
+Example for a trip to Tokyo, Kyoto, Osaka:
 [
   {
     "title": "Book flights to Tokyo",
-    "description": "Compare prices and book round-trip flights. Recommended: 4 weeks before trip",
-    "category": "transportation",
+    "description": "Compare prices and book round-trip international flights. Recommended: 4 weeks before trip",
+    "category": "general",
     "priority": "high",
     "completed": false
   },
   {
     "title": "Book accommodation in Tokyo",
-    "description": "Find and book hotel or Airbnb for Tokyo portion of trip. Recommended: 3 weeks before trip",
+    "description": "Find and book hotel or Airbnb for Tokyo portion of trip (first 3 nights). Recommended: 3 weeks before trip",
     "category": "accommodation",
+    "priority": "high",
+    "completed": false
+  },
+  {
+    "title": "Book accommodation in Kyoto",
+    "description": "Find and book hotel or Airbnb in Kyoto (nights 4-6). Recommended: 3 weeks before trip",
+    "category": "accommodation",
+    "priority": "high",
+    "completed": false
+  },
+  {
+    "title": "Reserve JR Pass for train travel",
+    "description": "Purchase Japan Rail Pass online for unlimited train travel between cities. Must be purchased before arrival.",
+    "category": "transportation",
+    "priority": "high",
+    "completed": false
+  },
+  {
+    "title": "Book tickets for Tokyo DisneySea",
+    "description": "Reserve admission tickets online to avoid long queues. Recommended: 2 weeks before trip",
+    "category": "activities",
+    "priority": "medium",
+    "completed": false
+  },
+  {
+    "title": "Get travel insurance",
+    "description": "Purchase comprehensive travel insurance covering medical, cancellation, and baggage. Recommended: 3 weeks before trip",
+    "category": "general",
     "priority": "high",
     "completed": false
   }
@@ -206,7 +236,8 @@ Example:
 
     def _build_prompt(self, trip_data: Dict[str, Any]) -> str:
         """Build the prompt for task generation."""
-        destinations_str = ", ".join(trip_data.get("destinations", []))
+        destinations = trip_data.get("destinations", [])
+        destinations_str = ", ".join(destinations)
         preferences_str = ", ".join(trip_data.get("preferences", []))
         transportation_str = ", ".join(trip_data.get("transportation", []))
 
@@ -225,14 +256,22 @@ Preferences: {preferences_str}
 Transportation: {transportation_str}
 Budget: {trip_data.get('budget')} {trip_data.get('currency')}
 
-Generate a complete task list covering:
-1. Pre-trip planning tasks (visas, vaccinations, insurance)
-2. Booking tasks (flights, accommodation, activities)
-3. Financial preparation (currency, budget, cards)
-4. Packing and preparation
-5. Destination-specific requirements for: {destinations_str}
+IMPORTANT: This trip visits {len(destinations)} destination(s): {destinations_str}
 
-Return ONLY a JSON array of task objects. Be specific and actionable.
+Generate a complete task list covering:
+1. General pre-trip tasks (international flights, travel insurance, documentation)
+2. Accommodation booking tasks - MUST create one task per destination: {destinations_str}
+3. Local transportation tasks between destinations (trains, buses, car rentals, etc.)
+4. Activity and attraction bookings for major destinations
+5. Financial preparation (currency, notify bank)
+6. Packing based on destination climates and activities
+
+REMEMBER:
+- Include the specific destination name in ALL accommodation, transportation, and activity task titles
+- Create at least one accommodation task for EACH of these destinations: {destinations_str}
+- Make tasks specific to the destinations, not generic
+
+Return ONLY a JSON array of task objects. Be specific and actionable with destination names.
 """
         return prompt
 
@@ -274,9 +313,9 @@ Return ONLY a JSON array of task objects. Be specific and actionable.
 
         tasks = [
             {
-                "title": "Book flights",
-                "description": f"Book flights to {destinations[0] if destinations else 'destination'}. Recommended: 4 weeks before trip",
-                "category": "transportation",
+                "title": f"Book flights to {destinations[0] if destinations else 'destination'}",
+                "description": f"Book international flights to {destinations[0] if destinations else 'destination'}. Recommended: 4 weeks before trip",
+                "category": "general",
                 "priority": "high",
                 "completed": False
             },
@@ -289,7 +328,7 @@ Return ONLY a JSON array of task objects. Be specific and actionable.
             },
         ]
 
-        # Add destination-specific tasks
+        # Add destination-specific accommodation tasks
         for destination in destinations:
             tasks.append({
                 "title": f"Book accommodation in {destination}",
@@ -299,13 +338,16 @@ Return ONLY a JSON array of task objects. Be specific and actionable.
                 "completed": False
             })
 
-            tasks.append({
-                "title": f"Research visa requirements for {destination}",
-                "description": f"Check if visa is required for {destination} and apply if necessary. Recommended: 6 weeks before trip",
-                "category": "visa",
-                "priority": "high",
-                "completed": False
-            })
+        # Add transportation between destinations if multiple
+        if len(destinations) > 1:
+            for i in range(len(destinations) - 1):
+                tasks.append({
+                    "title": f"Book transportation from {destinations[i]} to {destinations[i+1]}",
+                    "description": f"Reserve train, bus, or flight from {destinations[i]} to {destinations[i+1]}. Recommended: 2 weeks before trip",
+                    "category": "transportation",
+                    "priority": "medium",
+                    "completed": False
+                })
 
         # Add general tasks
         general_tasks = [
@@ -339,14 +381,14 @@ Return ONLY a JSON array of task objects. Be specific and actionable.
         """Get absolute minimal fallback tasks."""
         return [
             {
-                "title": "Book flights",
+                "title": "Book international flights",
                 "description": "Book flights for your trip. Recommended: 4 weeks before trip",
-                "category": "transportation",
+                "category": "general",
                 "priority": "high",
                 "completed": False
             },
             {
-                "title": "Book accommodation",
+                "title": "Book accommodation at destination",
                 "description": "Reserve hotels or other lodging. Recommended: 3 weeks before trip",
                 "category": "accommodation",
                 "priority": "high",

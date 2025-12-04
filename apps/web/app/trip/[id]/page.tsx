@@ -58,6 +58,7 @@ export default async function TripPage({ params }: TripPageProps) {
       <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
         <TripView trip={trip} itineraryItems={itineraryItems} tasks={tasks} />
       </Container>
+
     </Box>
   );
 }
