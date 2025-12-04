@@ -1,0 +1,35 @@
+# Ignore everything except apps/api
+*
+
+# Include apps/api
+!apps/api/
+
+# But exclude these from apps/api
+apps/api/__pycache__/
+apps/api/**/__pycache__/
+apps/api/*.pyc
+apps/api/**/*.pyc
+apps/api/.env
+apps/api/.env.local
+apps/api/venv/
+apps/api/env/
+apps/api/.venv/
+apps/api/*.log
+apps/api/.vscode/
+apps/api/.idea/
+apps/api/test_*.py
+apps/api/*_test.py
+apps/api/README.md
+apps/api/ARCHITECTURE.md
+apps/api/IMPLEMENTATION_SUMMARY.md
+apps/api/INTEGRATION.md
+apps/api/QUICKSTART.md
+apps/api/RAILWAY_SETUP.txt
+apps/api/travel_concierge/
+
+# Ignore other workspace directories
+apps/web/
+packages/
+node_modules/
+.git/
+.github/

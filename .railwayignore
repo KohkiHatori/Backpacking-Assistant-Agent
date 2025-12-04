@@ -1,0 +1,34 @@
+# Railway ignore file - exclude unnecessary files from deployment
+# Note: This is in addition to .dockerignore
+
+# Development
+.git/
+.github/
+.vscode/
+.idea/
+
+# Frontend (not needed for backend deployment)
+apps/web/
+packages/
+
+# Dependencies
+node_modules/
+apps/api/venv/
+apps/api/env/
+
+# Logs and temp files
+*.log
+*.pyc
+__pycache__/
+
+# Documentation
+*.md
+!README.md
+
+# Tests
+test_*.py
+*_test.py
+apps/api/test_agent.py
+
+# Old/deprecated
+apps/api/travel_concierge/

@@ -1,11 +1,12 @@
 Railway Deployment Quick Reference
 ===================================
 
-Files Created:
-✅ railway.json - Railway configuration
+Files Created (Root Level - Monorepo Setup):
+✅ Dockerfile - Root-level Dockerfile for Railway (copies apps/api)
+✅ railway.toml - Railway configuration
+✅ .dockerignore - Docker build optimization
 ✅ .railwayignore - Files to exclude from deployment
-✅ Dockerfile - Updated to use $PORT env var
-✅ main.py - Updated to read PORT from environment
+✅ main.py - Updated to read PORT from environment (in apps/api)
 
 Next Steps:
 -----------
@@ -18,8 +19,8 @@ Next Steps:
 2. Login to Railway:
    railway login
 
-3. Initialize project (from apps/api/):
-   cd apps/api
+3. Initialize project (from PROJECT ROOT):
+   cd /path/to/Backpacking-Assistant-Agent
    railway init
 
 4. Set environment variables:
@@ -61,7 +62,8 @@ For automatic deployments on git push:
 Option 1: Railway GitHub Integration (Easiest)
 - Go to Railway dashboard → Settings
 - Connect GitHub repository
-- Set root directory to: apps/api
+- IMPORTANT: Leave "Root Directory" EMPTY (or set to "/")
+- Railway will use the root-level Dockerfile and railway.toml
 - Every push to main will auto-deploy!
 
 Option 2: GitHub Actions (More control)
