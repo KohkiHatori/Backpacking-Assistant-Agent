@@ -24,8 +24,9 @@ export function useItineraryGeneration(tripId: string, jobId: string | null) {
     queryKey: ["itinerary-job", jobId],
     queryFn: () => checkItineraryJobStatus(jobId!),
     enabled: isPolling && !!jobId,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Stop polling if completed or failed
+      const data = query.state.data;
       if (data?.status === "completed" || data?.status === "failed") {
         setIsPolling(false);
         return false;
