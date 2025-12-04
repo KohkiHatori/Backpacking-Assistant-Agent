@@ -1,0 +1,105 @@
+"""FastAPI application entry point."""
+
+import os
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+from routers import agents
+from dependencies.config import get_settings
+
+# Load environment variables
+load_dotenv()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for startup and shutdown events.
+
+    This is where you can initialize resources (database connections,
+    cache clients, etc.) on startup and clean them up on shutdown.
+    """
+    # Startup
+    print("🚀 Starting Backpacking Assistant API...")
+    print(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
+
+    # Validate critical environment variables
+    settings = get_settings()
+    if not settings.gemini_api_key:
+        raise ValueError("GEMINI_API_KEY not set in environment")
+    if not settings.supabase_url:
+        raise ValueError("SUPABASE_URL not set in environment")
+
+    print("✅ Configuration validated")
+    print("✅ Agent orchestrator ready")
+
+    yield
+
+    # Shutdown
+    print("👋 Shutting down Backpacking Assistant API...")
+
+
+# Create FastAPI application
+app = FastAPI(
+    title="Backpacking Assistant API",
+    description="AI-powered trip planning with LangGraph agent orchestration",
+    version="0.1.0",
+    lifespan=lifespan
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",  # Next.js dev server
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+app.include_router(agents.router)
+
+
+@app.get("/")
+async def root():
+    """Root endpoint with API information."""
+    return {
+        "name": "Backpacking Assistant API",
+        "version": "0.1.0",
+        "status": "running",
+        "orchestrator": "LangGraph 1.0.0",
+        "model": "Gemini 2.5 Flash",
+        "endpoints": {
+            "agents": "/agents",
+            "docs": "/docs",
+            "openapi": "/openapi.json"
+        }
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {
+        "status": "healthy",
+        "service": "backpacking-assistant-api",
+        "environment": os.getenv("ENVIRONMENT", "development")
+    }
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    settings = get_settings()
+    uvicorn.run(
+        "main:app",
+        host=settings.api_host,
+        port=settings.api_port,
+        reload=settings.api_reload
+    )

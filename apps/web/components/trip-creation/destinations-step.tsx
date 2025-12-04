@@ -90,6 +90,9 @@ export function DestinationsStep() {
         </Typography>
         <GooglePlacesAutocomplete
           apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+          autocompletionRequest={{
+            types: ['(cities)']
+          }}
           selectProps={{
             value: startPoint ? { label: startPoint, value: startPoint } : null,
             onChange: (newValue: any) => {
@@ -112,6 +115,9 @@ export function DestinationsStep() {
               <Box sx={{ flex: 1 }}>
                 <GooglePlacesAutocomplete
                   apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+                  autocompletionRequest={{
+                    types: ['(cities)']
+                  }}
                   selectProps={{
                     value: destination ? { label: destination, value: destination } : null,
                     onChange: (newValue: any) => {
@@ -174,6 +180,9 @@ export function DestinationsStep() {
             </Typography>
             <GooglePlacesAutocomplete
               apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+              autocompletionRequest={{
+                types: ['(cities)']
+              }}
               selectProps={{
                 value: endPoint ? { label: endPoint, value: endPoint } : null,
                 onChange: (newValue: any) => {

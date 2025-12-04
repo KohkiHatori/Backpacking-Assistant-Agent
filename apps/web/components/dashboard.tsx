@@ -57,8 +57,11 @@ export default function Dashboard({ trips, user }: DashboardProps) {
 
   const handleCreateTestTrip = async () => {
     setIsCreatingTest(true);
-    await createTestTrip();
+    const result = await createTestTrip();
     setIsCreatingTest(false);
+    if (result.success && result.tripId) {
+      window.location.href = `/trip/${result.tripId}`;
+    }
   };
 
   return (

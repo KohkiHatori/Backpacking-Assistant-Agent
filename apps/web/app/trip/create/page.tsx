@@ -107,8 +107,12 @@ export default function CreateTripPage() {
         budget: store.budget,
         currency: store.currency,
       };
-      await createTrip(tripData);
-      router.push("/");
+      const trip = await createTrip(tripData);
+      if (trip?.id) {
+        router.push(`/trip/${trip.id}`);
+      } else {
+        router.push("/");
+      }
     } catch (error) {
       console.error("Failed to create trip:", error);
       // Handle error state in UI

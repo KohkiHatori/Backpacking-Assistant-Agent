@@ -3,47 +3,50 @@
 import { getServerSession } from "next-auth";
 import { createClient } from "@supabase/supabase-js";
 import { authOptions } from "@/lib/auth";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// Get API URL from environment variable
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 async function generateTripNameAndDescription(tripData: any) {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-  const travelersText = tripData.childrenCount > 0
-    ? `${tripData.adultsCount} adult${tripData.adultsCount > 1 ? 's' : ''} and ${tripData.childrenCount} child${tripData.childrenCount > 1 ? 'ren' : ''}`
-    : `${tripData.adultsCount} adult${tripData.adultsCount > 1 ? 's' : ''}`;
-
-  const prompt = `Based on the following trip details, generate a catchy name and a short, engaging one-sentence description.
-
-  Destinations: ${tripData.destinations.join(", ") || "Not specified"}
-  Start Point: ${tripData.startPoint || "Not specified"}
-  End Point: ${tripData.endPoint || "Not specified"}
-  Dates: ${tripData.flexibleDates
-      ? "Flexible"
-      : `${tripData.startDate} to ${tripData.endDate}`
-    }
-  Travelers: ${travelersText}
-  Preferences: ${tripData.preferences.join(", ") || "None"}
-  Transportation: ${tripData.transportation.join(", ") || "Not specified"}
-  Budget: ${tripData.budget} ${tripData.currency}
-
-  Return the result as a JSON object with "name" and "description" properties.`;
-
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = await response.text();
-    // Clean the text to be valid JSON
-    const jsonText = text.replace(/```json/g, "").replace(/```/g, "").trim();
-    return JSON.parse(jsonText);
+    // Call the backend API agent service
+    const response = await fetch(`${API_URL}/agents/generate-trip-name`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        destinations: tripData.destinations,
+        start_point: tripData.startPoint,
+        end_point: tripData.endPoint,
+        start_date: tripData.startDate,
+        end_date: tripData.endDate,
+        flexible_dates: tripData.flexibleDates,
+        adults_count: tripData.adultsCount,
+        children_count: tripData.childrenCount,
+        preferences: tripData.preferences,
+        transportation: tripData.transportation,
+        budget: tripData.budget,
+        currency: tripData.currency,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("API error:", errorData);
+      throw new Error(errorData.detail || "Failed to generate trip name and description");
+    }
+
+    const result = await response.json();
+    return result;
   } catch (error) {
     console.error("Error generating trip name and description:", error);
+    // Fallback to simple name generation
     return {
       name: `Trip to ${tripData.destinations[0] || tripData.endPoint || "Unknown"}`,
       description: "An amazing adventure awaits!",
@@ -92,5 +95,5 @@ export async function createTrip(tripData: any) {
     throw new Error("Failed to create trip");
   }
 
-  return data;
+  return data?.[0];
 }

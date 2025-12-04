@@ -131,89 +131,23 @@ export async function generateTripBlueprint(tripId: string, tripDetails: any) {
     throw new Error("Unauthorized");
   }
 
-  // @ts-ignore
-  const userId = session.user.id;
-  const sessionId = `session_${tripId}`;
+  // TODO: Implement full itinerary generation using the new backend agent system
+  // For now, we'll just skip this step since the old agent endpoints are deprecated
+  // Future implementation will call something like:
+  // POST /agents/generate-itinerary
+  // POST /agents/generate-tasks
 
-  // 1. Create/Ensure Session Exists
-  const sessionUrl = `${AGENT_API_URL}/apps/travel_concierge/users/${userId}/sessions/${sessionId}`;
-  try {
-    // We try to create/get session. Ignore error if it already exists or returns 200/201.
-    await fetch(sessionUrl, { method: "POST" });
-  } catch (e) {
-    console.warn("Session creation warning (might already exist):", e);
-  }
+  console.log("generateTripBlueprint called for trip:", tripId);
+  console.log("Full itinerary generation not yet implemented in new backend");
 
-  // 2. Construct Prompt
-  const prompt = `
-  SYSTEM INSTRUCTION:
-  Act autonomously. Do NOT ask clarifying questions.
-  If information is missing, use reasonable defaults or placeholders.
-  Generate the itinerary, tasks, and SAVE them immediately using the available tools.
+  // Return early - trip was already created with name/description
+  // The old agent endpoints (/apps/travel_concierge/..., /run_sse) are deprecated
+  // Future implementation will use new backend agents:
+  // - POST /agents/generate-itinerary
+  // - POST /agents/generate-tasks
 
-  I want to plan a trip.
-  User Context: { "user_id": "${userId}" }
-  Trip Details:
-  - Origin: ${tripDetails.startPoint || "Not specified"}
-  - Destination: ${tripDetails.destinations.join(", ")}
-  - Dates: ${tripDetails.startDate} to ${tripDetails.endDate}
-  - Travelers: ${tripDetails.adultsCount} adults, ${tripDetails.childrenCount} children
-  - Budget: ${tripDetails.budget} ${tripDetails.currency}
-  - Preferences: ${tripDetails.preferences.join(", ")}
-  - Transportation: ${tripDetails.transportation.join(", ")}
-
-  Please generate a full itinerary blueprint and save it.
-  `;
-
-  // 3. Call Run Endpoint (SSE)
-  const runUrl = `${AGENT_API_URL}/run_sse`;
-  const payload = {
-    session_id: sessionId,
-    app_name: "travel_concierge",
-    user_id: userId,
-    new_message: {
-      role: "user",
-      parts: [{ text: prompt }]
-    }
+  return {
+    success: true,
+    message: "Trip created with AI-generated name and description. Full itinerary generation coming soon."
   };
-
-  try {
-    const response = await fetch(runUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "text/event-stream" // Important for SSE
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Agent API Error:", errorText);
-      throw new Error(`Agent API failed: ${response.statusText}`);
-    }
-
-    // Since it's SSE, we just wait for it to finish.
-    // In a real app, we'd stream this text to the client.
-    // For now, we just consume the stream to ensure the agent completes its work.
-    const reader = response.body?.getReader();
-    if (reader) {
-      const decoder = new TextDecoder();
-      let done = false;
-      while (!done) {
-        const { value, done: doneReading } = await reader.read();
-        done = doneReading;
-        if (value) {
-          const chunk = decoder.decode(value);
-          console.log("Agent Chunk:", chunk); // Uncomment to debug agent thought process
-        }
-      }
-    }
-
-    return { success: true };
-
-  } catch (error) {
-    console.error("Failed to trigger blueprint generation:", error);
-    return { success: false, error: "Failed to generate blueprint" };
-  }
 }

@@ -22,16 +22,8 @@ export async function createTestTrip() {
 
   try {
     const trip = await createTrip(dummyData);
-
-    // Trigger the agent to fill in the details
-    // We don't await this to keep the UI responsive, or we can await if we want to show it immediately
-    // For "Test Trip" button, awaiting is better to see the result.
-    if (trip && trip.length > 0) {
-      await generateTripBlueprint(trip[0].id, dummyData);
-    }
-
     revalidatePath("/");
-    return { success: true };
+    return { success: true, tripId: trip?.id };
   } catch (error) {
     console.error("Failed to create test trip:", error);
     return { success: false, error: "Failed to create test trip" };
