@@ -17,6 +17,11 @@ export async function POST(req: Request) {
   console.log("POST /api/chat - tripId:", tripId);
   console.log("Received messages:", JSON.stringify(messages, null, 2));
 
+  const modifySchema = z.object({
+    modification: z.string().describe("The description of the modification requested by the user"),
+  });
+
+
   // Convert messages to core format, supporting v5 structure with parts/text/content
   const coreMessages = (Array.isArray(messages) ? messages : [])
     .map((m: any) => {
@@ -99,75 +104,73 @@ You have access to tools to modify the itinerary and find accommodations.
 - If a tool returns a Job ID or status, inform the user that the process has started.
 - Ask clarifying questions if the user's request is ambiguous.`,
     messages: coreMessages,
-    tools: {
-      modifyItinerary: tool({
-        description: "Modify the current trip itinerary based on user request",
-        parameters: z.object({
-          modification: z.string().describe("The description of the modification requested by the user"),
-        }),
-        execute: async ({ modification }: { modification: string }) => {
-          console.log("Executing modifyItinerary:", { tripId, modification });
-          try {
-            const response = await fetch(`${AGENT_API_URL}/itinerary/modify`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ trip_id: tripId, modification }),
-            });
+    // tools: {
+    // modifyItinerary: tool({
+    //   description: "Modify the current trip itinerary based on user request",
+    //   parameters: modifySchema,
+    //   execute: async ({ modification }: z.infer<typeof modifySchema>) => {
+    //     console.log("Executing modifyItinerary:", { tripId, modification });
+    //     try {
+    //       const response = await fetch(`${AGENT_API_URL}/itinerary/modify`, {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify({ trip_id: tripId, modification }),
+    //       });
 
-            if (!response.ok) {
-              const errorText = await response.text();
-              console.error("Itinerary modification failed:", errorText);
-              return { success: false, error: "Failed to connect to itinerary agent" };
-            }
+    //       if (!response.ok) {
+    //         const errorText = await response.text();
+    //         console.error("Itinerary modification failed:", errorText);
+    //         return { success: false, error: "Failed to connect to itinerary agent" };
+    //       }
 
-            const data = await response.json();
-            return { success: true, message: "Itinerary modification started", jobId: data.job_id };
-          } catch (error) {
-            console.error("Itinerary modification error:", error);
-            return { success: false, error: "Failed to connect to itinerary agent" };
-          }
-        },
-      }),
-      getAccommodations: tool({
-        description: "Get accommodation recommendations for a specific destination in the trip",
-        parameters: z.object({
-          destination: z.string().describe("The city or location to search for"),
-          nights_count: z.number().default(3).describe("Number of nights to stay"),
-          range_type: z.enum(["budget", "mid-range", "luxury", "all"]).default("all").describe("Price range preference"),
-        }),
-        execute: async ({ destination, nights_count, range_type }: { destination: string; nights_count: number; range_type: string }) => {
-          console.log("Executing getAccommodations:", { tripId, destination, nights_count, range_type });
-          try {
-            const response = await fetch(`${AGENT_API_URL}/accommodations/recommend`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                trip_id: tripId,
-                destination,
-                nights_count,
-                range_type,
-              }),
-            });
+    //       const data = await response.json();
+    //       return { success: true, message: "Itinerary modification started", jobId: data.job_id };
+    //     } catch (error) {
+    //       console.error("Itinerary modification error:", error);
+    //       return { success: false, error: "Failed to connect to itinerary agent" };
+    //     }
+    //   },
+    // }),
+    // getAccommodations: tool({
+    //   description: "Get accommodation recommendations for a specific destination in the trip",
+    //   parameters: z.object({
+    //     destination: z.string().describe("The city or location to search for"),
+    //     nights_count: z.number().default(3).describe("Number of nights to stay"),
+    //     range_type: z.enum(["budget", "mid-range", "luxury", "all"]).default("all").describe("Price range preference"),
+    //   }),
+    //   execute: async ({ destination, nights_count, range_type }: { destination: string; nights_count: number; range_type: string }) => {
+    //     console.log("Executing getAccommodations:", { tripId, destination, nights_count, range_type });
+    //     try {
+    //       const response = await fetch(`${AGENT_API_URL}/accommodations/recommend`, {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify({
+    //           trip_id: tripId,
+    //           destination,
+    //           nights_count,
+    //           range_type,
+    //         }),
+    //       });
 
-            if (!response.ok) {
-              const errorText = await response.text();
-              console.error("Accommodation search failed:", errorText);
-              return { success: false, error: "Failed to fetch accommodation recommendations" };
-            }
+    //       if (!response.ok) {
+    //         const errorText = await response.text();
+    //         console.error("Accommodation search failed:", errorText);
+    //         return { success: false, error: "Failed to fetch accommodation recommendations" };
+    //       }
 
-            const data = await response.json();
-            return {
-              success: true,
-              recommendations: data.recommendations,
-              message: `Found ${data.recommendations?.length || 0} recommendations`,
-            };
-          } catch (error) {
-            console.error("Accommodation search error:", error);
-            return { success: false, error: "Failed to fetch accommodation recommendations" };
-          }
-        },
-      }),
-    },
+    //       const data = await response.json();
+    //       return {
+    //         success: true,
+    //         recommendations: data.recommendations,
+    //         message: `Found ${data.recommendations?.length || 0} recommendations`,
+    //       };
+    //     } catch (error) {
+    //       console.error("Accommodation search error:", error);
+    //       return { success: false, error: "Failed to fetch accommodation recommendations" };
+    //     }
+    //   },
+    // }),
+    // },
   });
 
   return result.toUIMessageStreamResponse();

@@ -31,19 +31,18 @@ export default function FloatingChat({ tripId }: FloatingChatProps) {
 
   console.log('tripId in floating chat:', tripId);
 
-  const { messages, sendMessage, isLoading } = useChat({
-    api: "/api/chat",
-    body: { tripId },
+  const { messages, sendMessage, status } = useChat({
+    // api: "/api/chat",
     initialMessages: [{
       id: 'welcome',
       role: 'assistant',
       content: 'Hi! How can I help with your trip?'
     }]
-  });
+  } as any);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || status !== 'ready') return;
     await sendMessage({ text: input }, { body: { tripId } });
     setInput("");
   };
@@ -53,10 +52,10 @@ export default function FloatingChat({ tripId }: FloatingChatProps) {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isLoading]);
+  }, [messages, status]);
 
   // Debug log
-  console.log('Current messages:', messages.map(m => ({
+  console.log('Current messages:', messages.map((m: any) => ({
     role: m.role,
     content: m.content,
     parts: m.parts,
@@ -121,7 +120,7 @@ export default function FloatingChat({ tripId }: FloatingChatProps) {
               </Box>
             )}
 
-            {messages.map((m) => (
+            {messages.map((m: any) => (
               <Box
                 key={m.id}
                 sx={{
@@ -159,7 +158,7 @@ export default function FloatingChat({ tripId }: FloatingChatProps) {
                 }}>
                   {/* ✅ FIXED: Robust rendering for all v5 message formats */}
                   {m.parts && m.parts.length > 0 ? (
-                    m.parts.map((part, index) =>
+                    m.parts.map((part: any, index: number) =>
                       part.type === 'text' ? <Markdown key={index}>{part.text}</Markdown> : null
                     )
                   ) : m.content ? (
@@ -171,7 +170,7 @@ export default function FloatingChat({ tripId }: FloatingChatProps) {
                   )}
 
                   {/* ✅ COMPLETE TOOL INVOCATION HANDLING */}
-                  {m.toolInvocations?.map((toolInvocation) => {
+                  {/* {m.toolInvocations?.map((toolInvocation) => {
                     const toolCallId = toolInvocation.toolCallId;
 
                     if (!('result' in toolInvocation)) {
@@ -205,13 +204,13 @@ export default function FloatingChat({ tripId }: FloatingChatProps) {
                     }
 
                     return null;
-                  })}
+                  })} */}
                 </Paper>
               </Box>
             ))}
 
             {/* Loading indicator */}
-            {isLoading && messages[messages.length - 1]?.role === 'user' && (
+            {status !== 'ready' && messages[messages.length - 1]?.role === 'user' && (
               <Box sx={{ display: 'flex', justifyContent: 'flex-start', ml: 4 }}>
                 <Box sx={{ display: 'flex', gap: 0.5, p: 1, bgcolor: 'white', borderRadius: 2 }}>
                   <CircularProgress size={16} />
@@ -233,14 +232,14 @@ export default function FloatingChat({ tripId }: FloatingChatProps) {
                 placeholder="Ask me anything..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                disabled={isLoading}
+                disabled={status !== 'ready'}
                 autoComplete="off"
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4 } }}
               />
               <IconButton
                 type="submit"
                 color="primary"
-                disabled={isLoading || !input.trim()}
+                disabled={status !== 'ready' || !input.trim()}
                 sx={{
                   bgcolor: 'primary.main',
                   color: 'white',
