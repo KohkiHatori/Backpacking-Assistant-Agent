@@ -208,10 +208,11 @@ export default function TasksLiveView({ tripId }: TasksLiveViewProps) {
 
   // Show error if failed
   if (isFailed) {
+    const errorMessage = error instanceof Error ? error.message : error;
     return (
       <Alert severity="error" icon={<ErrorIcon />} sx={{ mb: 3 }}>
         <AlertTitle>Task Generation Failed</AlertTitle>
-        {error || "There was an error generating your tasks. Please try again."}
+        {errorMessage || "There was an error generating your tasks. Please try again."}
       </Alert>
     );
   }
