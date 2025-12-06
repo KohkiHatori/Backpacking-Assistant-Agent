@@ -26,3 +26,6 @@ export async function toggleTaskCompletion(taskId: string, isCompleted: boolean)
     throw error;
   }
 }
+
+
+

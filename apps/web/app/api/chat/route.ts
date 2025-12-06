@@ -72,15 +72,45 @@ export async function POST(req: Request) {
       .single();
 
     if (trip) {
+      // Fetch itinerary items
+      const { data: itineraryItems } = await supabase
+        .from("itinerary_items")
+        .select("*")
+        .eq("trip_id", tripId)
+        .order("day_number", { ascending: true })
+        .order("start_time", { ascending: true });
+
+      let itineraryText = "No itinerary items created yet.";
+      if (itineraryItems && itineraryItems.length > 0) {
+        itineraryText = itineraryItems.map((item: any) => {
+          const timeStr = item.start_time ? `[${item.start_time.slice(0, 5)}] ` : "";
+          return `Day ${item.day_number}: ${timeStr}${item.title} (${item.type || 'activity'}) - ${item.location || ''}`;
+        }).join("\n");
+      }
+
       console.log("Trip:", trip);
+
+      const destinations = Array.isArray(trip.destinations)
+        ? trip.destinations.join(", ")
+        : (trip.destinations || trip.destination || "Not specified"); // Fallback to singular if schema mismatch
+
+      const preferences = Array.isArray(trip.preferences)
+        ? trip.preferences.join(", ")
+        : (trip.preferences || trip.interests || "None"); // Fallback to interests if schema mismatch
+
+      const travelers = `${trip.adults_count || 1} adults, ${trip.children_count || 0} children`;
+
       tripContext = `
 TRIP CONTEXT:
-- Destination: ${trip.destination || "Not specified"}
+- Destinations: ${destinations}
 - Dates: ${trip.start_date} to ${trip.end_date}
 - Budget: ${trip.budget} ${trip.currency}
-- Travelers: ${trip.travelers || "Not specified"}
-- Interests: ${Array.isArray(trip.interests) ? trip.interests.join(", ") : trip.interests || "None"}
-- Notes: ${trip.notes || "None"}
+- Travelers: ${travelers}
+- Preferences: ${preferences}
+- Description: ${trip.description || "None"}
+
+CURRENT ITINERARY:
+${itineraryText}
       `.trim();
     } else {
       console.error("Trip not found");

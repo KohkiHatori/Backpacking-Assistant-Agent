@@ -33,7 +33,7 @@ class TripPlanningOrchestrator:
 
         # Add nodes for each sub-agent
         workflow.add_node("initialize", self._initialize_state)
-        workflow.add_node("name_description_agent", self._run_name_description_agent)
+        # workflow.add_node("name_description_agent", self._run_name_description_agent)
         # Future nodes:
         # workflow.add_node("visa_agent", self._run_visa_agent)
         # workflow.add_node("vaccine_agent", self._run_vaccine_agent)
@@ -43,11 +43,14 @@ class TripPlanningOrchestrator:
 
         # Define the workflow edges
         workflow.set_entry_point("initialize")
-        workflow.add_edge("initialize", "name_description_agent")
+        # workflow.add_edge("initialize", "name_description_agent")
 
         # For now, go directly to finalize after name_description
         # In the future, this will be a conditional edge to route to other agents
-        workflow.add_edge("name_description_agent", "finalize")
+        # workflow.add_edge("name_description_agent", "finalize")
+
+        # Temporary direct edge for now since name_description_agent is commented out
+        workflow.add_edge("initialize", "finalize")
 
         # Future edges (commented for now):
         # workflow.add_edge("name_description_agent", "visa_agent")

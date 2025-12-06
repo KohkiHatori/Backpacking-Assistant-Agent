@@ -3,6 +3,7 @@
 from typing import Dict, Any
 from schemas.trip_schemas import TripCreateRequest, TripNameDescriptionResponse
 from services.agents.super_agent import get_orchestrator
+from services.agents.sub_agents.name_description_agent import get_name_description_agent
 
 
 class TripService:
@@ -11,6 +12,7 @@ class TripService:
     def __init__(self):
         """Initialize the trip service."""
         self.orchestrator = get_orchestrator()
+        self.name_description_agent = get_name_description_agent()
 
     async def generate_trip_name_description(
         self,
@@ -18,7 +20,7 @@ class TripService:
         user_id: str | None = None
     ) -> TripNameDescriptionResponse:
         """
-        Generate trip name and description using the AI agent orchestrator.
+        Generate trip name and description using the NameDescriptionAgent directly.
 
         Args:
             trip_request: Trip creation request with all details
@@ -39,14 +41,11 @@ class TripService:
         if trip_data.get("end_date") and hasattr(trip_data["end_date"], "isoformat"):
             trip_data["end_date"] = trip_data["end_date"].isoformat()
 
-        # Process through orchestrator
-        result = await self.orchestrator.process_trip(trip_data, user_id)
+        # Generate name and description directly
+        result = self.name_description_agent.generate_name_and_description(trip_data)
 
-        # Check for errors
-        if result.get("status") == "failed" or not result.get("name"):
-            errors = result.get("errors", [])
-            error_msg = "; ".join(errors) if errors else "Failed to generate trip information"
-            raise ValueError(error_msg)
+        if not result.get("name"):
+             raise ValueError("Failed to generate trip information")
 
         return TripNameDescriptionResponse(
             name=result["name"],
