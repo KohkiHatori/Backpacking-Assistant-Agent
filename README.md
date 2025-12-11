@@ -1,6 +1,26 @@
 # Backpacking Assistant Agent
 
-Trip Planner: Plan multi-country routes with AI assistance — routes, activities, budgets.
+A unified, multi-agent travel companion designed to address the fragmentation and manual overhead inherent in planning complex, multi-destination trips.
+
+## Overview
+
+The process of planning a complex backpacking trip is often fragmented and labor-intensive, forcing travelers to rely on a disjointed ecosystem of tools. This project centralizes trip planning and management into a single, "AI-native" platform.
+
+At its core is a modular AI architecture where a cohort of specialized agents automates key planning domains. These agents leverage large language models like **Google’s Gemini 2.5 Flash** for creative and structured data generation and **Perplexity AI** for real-time, citation-backed web research.
+
+The system is architected to provide holistic and personalized support, maintaining a persistent, context-aware understanding of user preferences, past trips, and chat history.
+
+## Key Features
+
+-   **Specialized AI Agents:** A cohort of agents handles specific domains:
+    -   **Itinerary Generation:** Automates route planning and activity suggestions.
+    -   **Visa & Vaccination:** conducts research on entry and health requirements.
+    -   **Accommodation:** Provides personalized stay suggestions.
+-   **Advanced AI Integration:**
+    -   **Gemini 2.5 Flash:** Used for creative content and structured data generation.
+    -   **Perplexity AI:** Enables real-time, citation-backed web research.
+-   **Unified Experience:** Eliminates context-switching by combining research, itinerary management, and budget tracking in one modern web application.
+-   **Scalable Architecture:** Built with LangGraph for complex orchestration, currently optimized for performance via direct agent invocation.
 
 ## Tech Stack
 
@@ -8,15 +28,12 @@ Trip Planner: Plan multi-country routes with AI assistance — routes, activitie
 -   **Frontend:** Next.js 15 with React
 -   **Backend:** FastAPI (Python 3.11+)
 -   **Database:** PostgreSQL 16 (via Supabase)
+-   **AI Framework:** LangGraph
+-   **LLMs:** Google Gemini 2.5 Flash, Perplexity AI
 -   **ORM:** Drizzle ORM (TypeScript) / SQLModel (Python)
--   **Cache/Queue:** Redis
--   **Real-time:** Supabase Realtime / Yjs + y-websocket
+-   **Real-time:** Supabase Realtime / Yjs
 -   **Auth:** NextAuth.js
--   **API:** REST (public) + tRPC (internal TypeScript services)
--   **WebSockets:** Socket.io or native WebSockets with Redis pub/sub
--   **Agent Framework:** Langgraph
 -   **Deployment:** Vercel (frontend), Railway (backend)
--   **CI/CD:** GitHub Actions
 -   **Containerization:** Docker
 
 ## Getting Started
@@ -42,3 +59,9 @@ Trip Planner: Plan multi-country routes with AI assistance — routes, activitie
     ```
 
 The frontend will be available at `http://localhost:3000` and the backend at `http://localhost:8000`.
+
+## Citation
+
+```text
+Kohki Hatori. 2025. Backpacking Assistant Agent. 1, 1 (December 2025), 8 pages. https://doi.org/10.1145/nnnnnnn.nnnnnnn
+```
